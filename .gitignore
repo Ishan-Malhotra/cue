@@ -1,0 +1,13 @@
+# Local tooling / config
+.claude/
+
+# OS
+.DS_Store
+
+# Node / Next.js (forward-looking)
+node_modules/
+.next/
+out/
+.env
+.env.*
+!.env.example
