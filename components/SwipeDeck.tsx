@@ -69,7 +69,7 @@ export default function SwipeDeck({
           aria-label="Skip"
           disabled={!top}
           onClick={() => triggerSwipe("left")}
-          className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-700 text-2xl text-neutral-300 transition-colors hover:border-red-500 hover:text-red-400 disabled:opacity-40"
+          className="flex h-14 w-14 items-center justify-center rounded-full border border-line text-2xl text-muted transition-colors hover:border-red-500 hover:text-red-500 disabled:opacity-40"
         >
           ✕
         </button>
@@ -78,7 +78,7 @@ export default function SwipeDeck({
           aria-label="Add to watchlist"
           disabled={!top}
           onClick={() => triggerSwipe("up")}
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-neutral-700 text-xl text-neutral-300 transition-colors hover:border-sky-500 hover:text-sky-400 disabled:opacity-40"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-line text-xl text-muted transition-colors hover:border-sky-500 hover:text-sky-400 disabled:opacity-40"
         >
           ↑
         </button>
@@ -87,13 +87,13 @@ export default function SwipeDeck({
           aria-label="Like"
           disabled={!top}
           onClick={() => triggerSwipe("right")}
-          className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-700 text-2xl text-neutral-300 transition-colors hover:border-green-500 hover:text-green-400 disabled:opacity-40"
+          className="flex h-14 w-14 items-center justify-center rounded-full border border-line text-2xl text-muted transition-colors hover:border-green-500 hover:text-green-400 disabled:opacity-40"
         >
           ♥
         </button>
       </div>
 
-      <p className="text-xs text-neutral-600">
+      <p className="text-xs text-muted">
         Swipe right to like · up for watchlist · left to skip
       </p>
     </div>

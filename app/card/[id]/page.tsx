@@ -23,7 +23,7 @@ export default function CardIdPage() {
     <Suspense
       fallback={
         <main className="flex min-h-screen items-center justify-center">
-          <p className="text-neutral-500">Loading…</p>
+          <p className="text-muted">Loading…</p>
         </main>
       }
     >

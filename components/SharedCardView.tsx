@@ -17,12 +17,12 @@ export default function SharedCardView({ payload }: { payload: string }) {
   if (!shared) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-4 py-6 text-center">
-        <p className="text-neutral-400">
+        <p className="text-muted">
           This shared card link looks broken or incomplete.
         </p>
         <Link
           href="/card"
-          className="rounded-lg border border-neutral-700 px-4 py-2 text-sm hover:border-neutral-500"
+          className="rounded-lg border border-line px-4 py-2 text-sm hover:border-muted"
         >
           Go to my cards
         </Link>
@@ -40,11 +40,11 @@ export default function SharedCardView({ payload }: { payload: string }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col gap-5 px-4 py-6">
       <header className="text-center">
-        <p className="text-xs uppercase tracking-wide text-neutral-500">
+        <p className="text-xs uppercase tracking-wide text-muted">
           Shared taste card
         </p>
         <h1 className="mt-1 text-2xl font-bold">{shared.name}</h1>
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-muted">
           {shared.films.length}{" "}
           {shared.films.length === 1 ? "film" : "films"}
         </p>
@@ -61,13 +61,13 @@ export default function SharedCardView({ payload }: { payload: string }) {
           type="button"
           onClick={handleSave}
           disabled={saved}
-          className="w-full rounded-xl bg-white py-3 text-sm font-semibold text-neutral-900 shadow-lg transition-colors hover:bg-neutral-200 disabled:opacity-60"
+          className="w-full rounded-xl bg-fg py-3 text-sm font-semibold text-app shadow-lg transition-colors hover:opacity-90 disabled:opacity-60"
         >
           {saved ? "Saved to your cards" : "Save this as mine"}
         </button>
         <Link
           href="/card"
-          className="mt-2 block text-center text-xs text-neutral-500 hover:text-neutral-300"
+          className="mt-2 block text-center text-xs text-muted hover:text-muted"
         >
           View my cards
         </Link>

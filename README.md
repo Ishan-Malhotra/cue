@@ -17,6 +17,8 @@ database, zero cost to build or use.
 - **lz-string** for compressing a card into the share URL's `?d=` payload
 - **qrcode** for client-side QR generation (no external QR API)
 - Sharing via `navigator.share()` first, falling back to link + QR + copy
+- **Light/dark theming** via CSS-variable tokens + a `class`-based toggle, persisted in
+  `localStorage` (default dark cinema, warm-paper light)
 - TMDB accessed **only** through server-side proxy routes (`/api/tmdb/*`) — the API key never
   reaches the client, and proxying keeps the app working where TMDB's domains are ISP-blocked
 - Deploys to **Vercel** free tier
@@ -64,10 +66,32 @@ The card model is **multiple named, editable cards** (not a single card).
   payload; never calls TMDB. Includes a **"Save this as mine"** button that forks the card into
   the viewer's own collection.
 
+### ✅ Step 4 — Home, `/movie/[id]`, `/search` & curated-backdrop `/dev` tool
+- **`/`** — `cue` branding + `search`/`explore`/`share` buttons, plus a rotating set of curated
+  movie backdrops (fresh random selection each load), each clickable through to `/movie/[id]`.
+- **`/movie/[id]`** — film detail (backdrop, title, year, genres, overview) with a single
+  **binary** add-to-watchlist toggle (writes only to `watchlist`; no reject/skip).
+- **`/search`** — search box hitting `/api/tmdb/search`; results link to `/movie/[id]`.
+- **`/dev`** — a developer curation tool: search a film, browse its actual backdrop frames, pick
+  ones for the homepage, and Copy/Download the JSON to commit into `data/backdrops.json`
+  (the committed source of truth for the homepage collage — no server DB).
+- New proxy routes `GET /api/tmdb/movie/[id]` (detail) and `/api/tmdb/movie/[id]/images` (frames).
+
+### ✅ Step 5 — Home redesign + site-wide light/dark theme
+- **`/`** rebuilt as a **full-bleed masonry collage** of the curated backdrops (varied tiles,
+  tight gaps, sized to fill the viewport and reflow on resize). Branding/buttons sit on a
+  readable glass panel; click targets for the panel and the collage are kept separate.
+- **Light/dark toggle** (lightbulb icon) integrated into the menu card, persisted in
+  `localStorage` and applied globally before paint (no flash), synced across tabs.
+- **Semantic color tokens** (`app`/`surface`/`fg`/`muted`/`line`, defined as CSS variables in
+  [app/globals.css](app/globals.css) and mapped in `tailwind.config.ts`) drive **every screen**
+  so the whole app is correct in both themes.
+
 ### ⬜ Upcoming
 - `/taste` — grid/browse view of `tasteProfile` (reference only; does not edit cards)
 - Optional card **reorder** on `/card/[id]` (listed in the spec; not yet built)
-- Deploy to Vercel and test the swipe + QR scan flow on a real phone
+- Full light/dark polish is applied; deploy to Vercel and test the swipe + QR scan flow on a
+  real phone
 
 ## Data model (`localStorage`, Phase A)
 
@@ -106,18 +130,28 @@ Other scripts: `npm run build`, `npm run start`, `npm run lint`.
 
 ```
 app/
-  page.tsx                 landing page
+  layout.tsx               root layout + pre-paint theme script
+  globals.css              Tailwind + theme tokens (light/dark CSS variables)
+  page.tsx                 home: full-bleed backdrop collage + menu card + theme toggle
   explore/page.tsx         swipe deck + filter chips
+  search/page.tsx          search box → results linking to /movie/[id]
+  movie/[id]/page.tsx      film detail + binary watchlist toggle
   card/page.tsx            list of the user's cards
   card/[id]/page.tsx       card editor, or shared read-only view when ?d= is present
-  api/tmdb/{trending,search,discover}/route.ts   server-side TMDB proxies
-components/                FilterChips, SwipeDeck, MovieCard, FilmTile,
-                           CardEditor, SharePanel, SharedCardView
+  dev/page.tsx             backdrop curation tool (exports data/backdrops.json)
+  api/tmdb/{trending,search,discover}/route.ts       server-side TMDB proxies
+  api/tmdb/movie/[id]/route.ts, .../images/route.ts  movie detail + backdrop frames
+components/                FilterChips, SwipeDeck, MovieCard, FilmTile, CardEditor,
+                           SharePanel, SharedCardView, ThemeToggle, ThemeSync
+data/
+  backdrops.json           committed curated homepage backdrops (source of truth)
 lib/
   tmdb.ts                  server-only TMDB fetch helper
   storage.ts               localStorage layer (tasteProfile / watchlist / cards / swipePrefs)
   genres.ts                static genre + language lists
   discover.ts              builds the discover query (chips + weighted bias)
   search.ts                client helper for inline TMDB search
+  movie.ts                 client helper for /movie/[id] detail
+  backdrops.ts             curated-backdrop read + /dev draft helpers
   share.ts                 encode/decode a card into the ?d= payload + build share URL
 ```

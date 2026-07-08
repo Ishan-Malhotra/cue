@@ -18,7 +18,7 @@ export default function FilmTile({
   action?: TileAction;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-lg bg-neutral-800">
+    <div className="group relative overflow-hidden rounded-lg bg-surface-2">
       <div className="aspect-[2/3] w-full">
         {film.poster_path ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -29,17 +29,17 @@ export default function FilmTile({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-neutral-400">
+          <div className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-muted">
             {film.title}
           </div>
         )}
       </div>
 
       <div className="p-1.5">
-        <p className="truncate text-xs font-medium text-neutral-100" title={film.title}>
+        <p className="truncate text-xs font-medium text-fg" title={film.title}>
           {film.title}
         </p>
-        {film.year && <p className="text-[10px] text-neutral-500">{film.year}</p>}
+        {film.year && <p className="text-[10px] text-muted">{film.year}</p>}
       </div>
 
       {action && (
@@ -53,7 +53,7 @@ export default function FilmTile({
             "absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold shadow transition-colors disabled:cursor-not-allowed disabled:opacity-40 " +
             (action.kind === "remove"
               ? "bg-red-600/90 text-white hover:bg-red-500"
-              : "bg-white/90 text-neutral-900 hover:bg-white")
+              : "bg-fg/90 text-app hover:bg-fg")
           }
         >
           {action.icon}

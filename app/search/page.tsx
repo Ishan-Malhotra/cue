@@ -31,7 +31,7 @@ export default function SearchPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col gap-5 px-4 py-6">
       <header className="flex items-center justify-between">
-        <Link href="/" className="text-sm text-neutral-400 hover:text-white">
+        <Link href="/" className="text-sm text-muted hover:text-fg">
           ← Home
         </Link>
         <h1 className="text-lg font-semibold">Search</h1>
@@ -44,21 +44,21 @@ export default function SearchPage() {
           onChange={(e) => setQuery(e.target.value)}
           autoFocus
           placeholder="Search for a film…"
-          className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-app px-3 py-2 text-sm outline-none focus:border-muted"
         />
         <button
           type="submit"
           disabled={status === "searching"}
-          className="shrink-0 rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:border-neutral-500 disabled:opacity-40"
+          className="shrink-0 rounded-lg border border-line px-4 py-2 text-sm text-fg hover:border-muted disabled:opacity-40"
         >
           {status === "searching" ? "…" : "Go"}
         </button>
       </form>
 
-      {status === "error" && <p className="text-sm text-red-400">{error}</p>}
+      {status === "error" && <p className="text-sm text-red-500">{error}</p>}
 
       {status === "done" && results.length === 0 && (
-        <p className="text-sm text-neutral-500">No films found.</p>
+        <p className="text-sm text-muted">No films found.</p>
       )}
 
       {results.length > 0 && (

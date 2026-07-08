@@ -93,10 +93,10 @@ export default function CardEditor({ id }: { id: string }) {
   if (loaded && !card) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-4 py-6 text-center">
-        <p className="text-neutral-400">Card not found.</p>
+        <p className="text-muted">Card not found.</p>
         <Link
           href="/card"
-          className="rounded-lg border border-neutral-700 px-4 py-2 text-sm hover:border-neutral-500"
+          className="rounded-lg border border-line px-4 py-2 text-sm hover:border-muted"
         >
           Back to my cards
         </Link>
@@ -107,7 +107,7 @@ export default function CardEditor({ id }: { id: string }) {
   if (!card) {
     return (
       <main className="flex min-h-screen items-center justify-center">
-        <p className="text-neutral-500">Loading…</p>
+        <p className="text-muted">Loading…</p>
       </main>
     );
   }
@@ -117,10 +117,10 @@ export default function CardEditor({ id }: { id: string }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col gap-5 px-4 py-6">
       <header className="flex items-center justify-between">
-        <Link href="/card" className="text-sm text-neutral-400 hover:text-white">
+        <Link href="/card" className="text-sm text-muted hover:text-fg">
           ← My Cards
         </Link>
-        <span className="text-xs text-neutral-500">
+        <span className="text-xs text-muted">
           {card.films.length}/{CARD_FILM_CAP}
         </span>
       </header>
@@ -133,16 +133,16 @@ export default function CardEditor({ id }: { id: string }) {
           if (e.key === "Enter") e.currentTarget.blur();
         }}
         placeholder="Card name"
-        className="w-full rounded-lg border border-neutral-800 bg-transparent px-3 py-2 text-xl font-bold outline-none focus:border-neutral-600"
+        className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-xl font-bold outline-none focus:border-muted"
       />
 
       {/* Films currently on the card */}
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-neutral-300">
+        <h2 className="mb-2 text-sm font-semibold text-muted">
           On this card
         </h2>
         {card.films.length === 0 ? (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted">
             No films yet. Add some from below.
           </p>
         ) : (
@@ -178,8 +178,8 @@ export default function CardEditor({ id }: { id: string }) {
             className={
               "rounded-full px-3 py-1 text-sm " +
               (mode === "taste"
-                ? "bg-white text-neutral-900"
-                : "border border-neutral-700 text-neutral-300")
+                ? "bg-fg text-app"
+                : "border border-line text-muted")
             }
           >
             From your taste
@@ -190,8 +190,8 @@ export default function CardEditor({ id }: { id: string }) {
             className={
               "rounded-full px-3 py-1 text-sm " +
               (mode === "search"
-                ? "bg-white text-neutral-900"
-                : "border border-neutral-700 text-neutral-300")
+                ? "bg-fg text-app"
+                : "border border-line text-muted")
             }
           >
             Search
@@ -204,12 +204,12 @@ export default function CardEditor({ id }: { id: string }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search for a film…"
-              className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+              className="min-w-0 flex-1 rounded-lg border border-line bg-app px-3 py-2 text-sm outline-none focus:border-muted"
             />
             <button
               type="submit"
               disabled={searching}
-              className="shrink-0 rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:border-neutral-500 disabled:opacity-40"
+              className="shrink-0 rounded-lg border border-line px-4 py-2 text-sm text-fg hover:border-muted disabled:opacity-40"
             >
               {searching ? "…" : "Go"}
             </button>
@@ -217,7 +217,7 @@ export default function CardEditor({ id }: { id: string }) {
         )}
 
         {mode === "taste" && taste.length === 0 && (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted">
             Your taste profile is empty. Swipe some films on{" "}
             <Link href="/explore" className="underline">
               Explore
@@ -226,7 +226,7 @@ export default function CardEditor({ id }: { id: string }) {
           </p>
         )}
 
-        {searchError && <p className="text-sm text-red-400">{searchError}</p>}
+        {searchError && <p className="text-sm text-red-500">{searchError}</p>}
 
         {addable.length > 0 && (
           <div className="grid grid-cols-3 gap-2">

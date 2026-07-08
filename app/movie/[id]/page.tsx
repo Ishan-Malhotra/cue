@@ -58,7 +58,7 @@ export default function MoviePage() {
   if (status === "loading") {
     return (
       <main className="flex min-h-screen items-center justify-center">
-        <p className="text-neutral-500">Loading…</p>
+        <p className="text-muted">Loading…</p>
       </main>
     );
   }
@@ -66,10 +66,10 @@ export default function MoviePage() {
   if (status === "error" || !movie) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-4 text-center">
-        <p className="text-red-400">{error || "Film not found."}</p>
+        <p className="text-red-500">{error || "Film not found."}</p>
         <Link
           href="/"
-          className="rounded-lg border border-neutral-700 px-4 py-2 text-sm hover:border-neutral-500"
+          className="rounded-lg border border-line px-4 py-2 text-sm hover:border-muted"
         >
           Back home
         </Link>
@@ -88,7 +88,7 @@ export default function MoviePage() {
             className="h-64 w-full object-cover sm:h-96"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-app via-app/40 to-transparent" />
         <Link
           href="/"
           className="absolute left-4 top-4 rounded-full bg-black/50 px-3 py-1 text-sm text-white backdrop-blur hover:bg-black/70"
@@ -101,14 +101,14 @@ export default function MoviePage() {
         <h1 className="text-3xl font-bold">
           {movie.title}
           {movie.year && (
-            <span className="ml-2 text-xl font-normal text-neutral-400">
+            <span className="ml-2 text-xl font-normal text-muted">
               {movie.year}
             </span>
           )}
         </h1>
 
         {movie.genres.length > 0 && (
-          <p className="mt-2 text-sm uppercase tracking-wide text-neutral-500">
+          <p className="mt-2 text-sm uppercase tracking-wide text-muted">
             {movie.genres.join(" · ")}
           </p>
         )}
@@ -121,14 +121,14 @@ export default function MoviePage() {
             "mt-5 rounded-full px-5 py-2 text-sm font-semibold transition-colors " +
             (saved
               ? "bg-sky-500 text-white hover:bg-sky-600"
-              : "border border-neutral-600 text-neutral-200 hover:border-neutral-400")
+              : "border border-muted text-fg hover:border-muted")
           }
         >
           {saved ? "✓ On your watchlist" : "+ Add to watchlist"}
         </button>
 
         {movie.overview && (
-          <p className="mt-6 leading-relaxed text-neutral-300">
+          <p className="mt-6 leading-relaxed text-muted">
             {movie.overview}
           </p>
         )}

@@ -141,7 +141,7 @@ export default function ExplorePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col gap-4 px-4 py-6">
       <header className="flex items-center justify-between">
-        <Link href="/" className="text-sm text-neutral-400 hover:text-white">
+        <Link href="/" className="text-sm text-muted hover:text-fg">
           ← Home
         </Link>
         <h1 className="text-lg font-semibold">Explore</h1>
@@ -152,16 +152,16 @@ export default function ExplorePage() {
 
       <div className="flex flex-1 items-center justify-center pt-2">
         {status === "loading" && (
-          <p className="text-neutral-500">Loading films…</p>
+          <p className="text-muted">Loading films…</p>
         )}
 
         {status === "error" && (
           <div className="text-center">
-            <p className="text-red-400">{error}</p>
+            <p className="text-red-500">{error}</p>
             <button
               type="button"
               onClick={() => loadMore(true)}
-              className="mt-3 rounded-full border border-neutral-700 px-4 py-1 text-sm hover:border-neutral-500"
+              className="mt-3 rounded-full border border-line px-4 py-1 text-sm hover:border-muted"
             >
               Retry
             </button>
@@ -169,7 +169,7 @@ export default function ExplorePage() {
         )}
 
         {status === "empty" && (
-          <p className="max-w-xs text-center text-neutral-500">
+          <p className="max-w-xs text-center text-muted">
             No more films for this filter. Try different genres or languages.
           </p>
         )}

@@ -98,20 +98,20 @@ export default function DevPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-6">
       <header className="flex items-center justify-between">
-        <Link href="/" className="text-sm text-neutral-400 hover:text-white">
+        <Link href="/" className="text-sm text-muted hover:text-fg">
           ← Home
         </Link>
         <h1 className="text-lg font-semibold">Backdrop curation (dev)</h1>
         <div className="w-12" />
       </header>
 
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-muted">
         Search a film, pick a frame to add it to the homepage rotation, then
         Copy/Download the JSON and paste it into{" "}
-        <code className="text-neutral-400">data/backdrops.json</code> and commit.
+        <code className="text-muted">data/backdrops.json</code> and commit.
       </p>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-red-500">{error}</p>}
 
       {/* Search */}
       <form onSubmit={runSearch} className="flex gap-2">
@@ -119,11 +119,11 @@ export default function DevPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for a film…"
-          className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-app px-3 py-2 text-sm outline-none focus:border-muted"
         />
         <button
           type="submit"
-          className="shrink-0 rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:border-neutral-500"
+          className="shrink-0 rounded-lg border border-line px-4 py-2 text-sm text-fg hover:border-muted"
         >
           Search
         </button>
@@ -139,8 +139,8 @@ export default function DevPage() {
               className={
                 "rounded-full border px-3 py-1 text-sm transition-colors " +
                 (selected?.id === f.id
-                  ? "border-white bg-white text-neutral-900"
-                  : "border-neutral-700 text-neutral-300 hover:border-neutral-500")
+                  ? "border-fg bg-fg text-app"
+                  : "border-line text-muted hover:border-muted")
               }
             >
               {f.title}
@@ -153,13 +153,13 @@ export default function DevPage() {
       {/* Frames for the selected film */}
       {selected && (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-neutral-300">
+          <h2 className="text-sm font-semibold text-muted">
             Frames for {selected.title}
           </h2>
           {loadingFrames ? (
-            <p className="text-sm text-neutral-500">Loading frames…</p>
+            <p className="text-sm text-muted">Loading frames…</p>
           ) : frames.length === 0 ? (
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-muted">
               No backdrop frames available for this film.
             </p>
           ) : (
@@ -176,7 +176,7 @@ export default function DevPage() {
                       "relative overflow-hidden rounded border-2 transition-colors " +
                       (picked
                         ? "border-green-500"
-                        : "border-transparent hover:border-neutral-500")
+                        : "border-transparent hover:border-muted")
                     }
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -199,9 +199,9 @@ export default function DevPage() {
       )}
 
       {/* Current draft */}
-      <section className="space-y-3 border-t border-neutral-800 pt-4">
+      <section className="space-y-3 border-t border-line pt-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-300">
+          <h2 className="text-sm font-semibold text-muted">
             Homepage rotation ({draft.length})
           </h2>
           <div className="flex gap-2">
@@ -209,7 +209,7 @@ export default function DevPage() {
               type="button"
               onClick={copyJson}
               disabled={draft.length === 0}
-              className="rounded-lg border border-neutral-700 px-3 py-1 text-xs text-neutral-200 hover:border-neutral-500 disabled:opacity-40"
+              className="rounded-lg border border-line px-3 py-1 text-xs text-fg hover:border-muted disabled:opacity-40"
             >
               {copied ? "Copied!" : "Copy JSON"}
             </button>
@@ -217,7 +217,7 @@ export default function DevPage() {
               type="button"
               onClick={downloadJson}
               disabled={draft.length === 0}
-              className="rounded-lg border border-neutral-700 px-3 py-1 text-xs text-neutral-200 hover:border-neutral-500 disabled:opacity-40"
+              className="rounded-lg border border-line px-3 py-1 text-xs text-fg hover:border-muted disabled:opacity-40"
             >
               Download
             </button>
@@ -225,7 +225,7 @@ export default function DevPage() {
         </div>
 
         {draft.length === 0 ? (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted">
             Nothing curated yet. Pick frames above.
           </p>
         ) : (

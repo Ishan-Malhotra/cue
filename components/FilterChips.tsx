@@ -19,8 +19,8 @@ function Chip({
       className={
         "shrink-0 rounded-full border px-3 py-1 text-sm transition-colors " +
         (active
-          ? "border-white bg-white text-neutral-900"
-          : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500")
+          ? "border-fg bg-fg text-app"
+          : "border-line bg-surface text-muted hover:border-muted")
       }
     >
       {label}

@@ -2,19 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Dark cinema palette is the default ("off"); light is a warm paper counterpart. */
-html.dark {
-  color-scheme: dark;
-}
-html.dark body {
-  @apply bg-neutral-950 text-neutral-100 antialiased;
-}
-
-html:not(.dark) {
+/* Semantic theme tokens as RGB channels so Tailwind alpha modifiers (/80) work.
+   :root = light (warm paper/cinema). html.dark = dark cinema (the default). */
+:root {
+  --c-bg: 244 239 230; /* warm paper */
+  --c-surface: 255 255 255;
+  --c-surface-2: 237 230 218;
+  --c-line: 221 214 200;
+  --c-fg: 28 25 23; /* ink */
+  --c-muted: 107 100 89; /* warm gray */
   color-scheme: light;
 }
-html:not(.dark) body {
-  @apply antialiased;
-  background-color: #f4efe6; /* warm paper */
-  color: #1c1917; /* ink */
+
+html.dark {
+  --c-bg: 10 10 10;
+  --c-surface: 23 23 23;
+  --c-surface-2: 38 38 38;
+  --c-line: 38 38 38;
+  --c-fg: 245 245 245;
+  --c-muted: 163 163 163;
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-app text-fg antialiased;
 }

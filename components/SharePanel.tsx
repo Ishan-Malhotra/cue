@@ -48,11 +48,11 @@ export default function SharePanel({ card }: { card: Card }) {
   const dense = url.length > 1800;
 
   return (
-    <section className="space-y-4 rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
-      <h3 className="text-sm font-semibold text-neutral-200">Share this card</h3>
+    <section className="space-y-4 rounded-xl border border-line bg-surface/50 p-4">
+      <h3 className="text-sm font-semibold text-fg">Share this card</h3>
 
       {empty ? (
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted">
           Add at least one film to share this card.
         </p>
       ) : (
@@ -61,7 +61,7 @@ export default function SharePanel({ card }: { card: Card }) {
             <button
               type="button"
               onClick={nativeShare}
-              className="w-full rounded-lg bg-white py-2 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-200"
+              className="w-full rounded-lg bg-fg py-2 text-sm font-semibold text-app transition-colors hover:opacity-90"
             >
               Share…
             </button>
@@ -91,12 +91,12 @@ export default function SharePanel({ card }: { card: Card }) {
               readOnly
               value={url}
               onFocus={(e) => e.currentTarget.select()}
-              className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-xs text-neutral-300"
+              className="min-w-0 flex-1 rounded-lg border border-line bg-app px-3 py-2 text-xs text-muted"
             />
             <button
               type="button"
               onClick={copy}
-              className="shrink-0 rounded-lg border border-neutral-700 px-3 py-2 text-xs font-medium text-neutral-200 transition-colors hover:border-neutral-500"
+              className="shrink-0 rounded-lg border border-line px-3 py-2 text-xs font-medium text-fg transition-colors hover:border-muted"
             >
               {copied ? "Copied!" : "Copy"}
             </button>

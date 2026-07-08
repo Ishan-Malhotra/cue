@@ -10,7 +10,7 @@ export default function MovieCard({ movie }: { movie: DiscoverMovie }) {
     .slice(0, 3) as string[];
 
   return (
-    <div className="relative h-full w-full select-none overflow-hidden rounded-2xl bg-neutral-800 shadow-2xl">
+    <div className="relative h-full w-full select-none overflow-hidden rounded-2xl bg-surface-2 shadow-2xl">
       {movie.poster_path ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -20,7 +20,7 @@ export default function MovieCard({ movie }: { movie: DiscoverMovie }) {
           className="h-full w-full object-cover"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center p-6 text-center text-neutral-400">
+        <div className="flex h-full w-full items-center justify-center p-6 text-center text-muted">
           {movie.title}
         </div>
       )}
