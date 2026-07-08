@@ -34,5 +34,293 @@
     "title": "The Secret Life of Walter Mitty",
     "year": "2013",
     "backdrop_path": "/3qBmoyDqukAdSqO6w3T73rWlg0H.jpg"
+  },
+  {
+    "movieId": 155,
+    "title": "The Dark Knight",
+    "year": "2008",
+    "backdrop_path": "/plDp52MirFHc2PMJRMNWoG0kfr3.jpg"
+  },
+  {
+    "movieId": 207,
+    "title": "Dead Poets Society",
+    "year": "1989",
+    "backdrop_path": "/lFIXZpwwlF9hg8NM3RazaIJDuaj.jpg"
+  },
+  {
+    "movieId": 85350,
+    "title": "Boyhood",
+    "year": "2014",
+    "backdrop_path": "/Ac2s9RJEi1ZeaQopoLsqlsmWQmx.jpg"
+  },
+  {
+    "movieId": 37165,
+    "title": "The Truman Show",
+    "year": "1998",
+    "backdrop_path": "/7MpLuXTcIHMSoYJkdr3c41WdR76.jpg"
+  },
+  {
+    "movieId": 550,
+    "title": "Fight Club",
+    "year": "1999",
+    "backdrop_path": "/c6OLXfKAk5BKeR6broC8pYiCquX.jpg"
+  },
+  {
+    "movieId": 157336,
+    "title": "Interstellar",
+    "year": "2014",
+    "backdrop_path": "/5C3RriLKkIAQtQMx85JLtu4rVI2.jpg"
+  },
+  {
+    "movieId": 807,
+    "title": "Se7en",
+    "year": "1995",
+    "backdrop_path": "/zhX7EJJMwBLvlZKGlwpLO1L0LLw.jpg"
+  },
+  {
+    "movieId": 33217,
+    "title": "Diary of a Wimpy Kid",
+    "year": "2010",
+    "backdrop_path": "/lbEeyUr97C1TfTOvOeHwfnmvTs2.jpg"
+  },
+  {
+    "movieId": 503919,
+    "title": "The Lighthouse",
+    "year": "2019",
+    "backdrop_path": "/fe1RJmt0fJRrVjsZmymVMS1YOmj.jpg"
+  },
+  {
+    "movieId": 693134,
+    "title": "Dune: Part Two",
+    "year": "2024",
+    "backdrop_path": "/rRBD8ORo9y34tYkAQJVbn4Ml6tu.jpg"
+  },
+  {
+    "movieId": 102382,
+    "title": "The Amazing Spider-Man 2",
+    "year": "2014",
+    "backdrop_path": "/xY3tYJT6xlCwos5IgotIWQH9dC3.jpg"
+  },
+  {
+    "movieId": 965150,
+    "title": "Aftersun",
+    "year": "2022",
+    "backdrop_path": "/hhICjHximfBciqxX09d91GgghV8.jpg"
+  },
+  {
+    "movieId": 8363,
+    "title": "Superbad",
+    "year": "2007",
+    "backdrop_path": "/jLBkhzMqaAii5aApkOXDDU8zgLu.jpg"
+  },
+  {
+    "movieId": 680,
+    "title": "Pulp Fiction",
+    "year": "1994",
+    "backdrop_path": "/1SUIPFsfuNnAQExdbWyawXBGf4v.jpg"
+  },
+  {
+    "movieId": 562,
+    "title": "Die Hard",
+    "year": "1988",
+    "backdrop_path": "/qsuuXC9ZQa5YhB0mHh5cK30GL17.jpg"
+  },
+  {
+    "movieId": 398818,
+    "title": "Call Me by Your Name",
+    "year": "2017",
+    "backdrop_path": "/CPGhKEf3jB1qFGOteAcePcM3wl.jpg"
+  },
+  {
+    "movieId": 451915,
+    "title": "Beautiful Boy",
+    "year": "2018",
+    "backdrop_path": "/lAW7t1980VvSlIpcHAoMdIL71wy.jpg"
+  },
+  {
+    "movieId": 508883,
+    "title": "The Boy and the Heron",
+    "year": "2023",
+    "backdrop_path": "/iw1h9EfYmzpDj2xptUIIWoKRGPT.jpg"
+  },
+  {
+    "movieId": 149,
+    "title": "Akira",
+    "year": "1988",
+    "backdrop_path": "/jmlM5sa8vrBWHSBubqAithX6Fx5.jpg"
+  },
+  {
+    "movieId": 98,
+    "title": "Gladiator",
+    "year": "2000",
+    "backdrop_path": "/xrBtWELclopNgWjBzUT8l9eYGxZ.jpg"
+  },
+  {
+    "movieId": 569094,
+    "title": "Spider-Man: Across the Spider-Verse",
+    "year": "2023",
+    "backdrop_path": "/9FEN0aETK3kUfRobOYudhd6X6Xl.jpg"
+  },
+  {
+    "movieId": 11324,
+    "title": "Shutter Island",
+    "year": "2010",
+    "backdrop_path": "/wKXiudrZNfR7B3ND7fZDUInoamf.jpg"
+  },
+  {
+    "movieId": 18785,
+    "title": "The Hangover",
+    "year": "2009",
+    "backdrop_path": "/hSYhNEF7vZQQb804pnTuogxPgLQ.jpg"
+  },
+  {
+    "movieId": 79464,
+    "title": "Rockstar",
+    "year": "2011",
+    "backdrop_path": "/stD5DWstDJQmNAie5P1SnccE9Rl.jpg"
+  },
+  {
+    "movieId": 339274,
+    "title": "Tamasha",
+    "year": "2015",
+    "backdrop_path": "/5whOSL6mMXYeKsnrSsExOizBS10.jpg"
+  },
+  {
+    "movieId": 84892,
+    "title": "The Perks of Being a Wallflower",
+    "year": "2012",
+    "backdrop_path": "/aM6E4DBP6588q3tEr9hz41ls80q.jpg"
+  },
+  {
+    "movieId": 687163,
+    "title": "Project Hail Mary",
+    "year": "2026",
+    "backdrop_path": "/qQ08Gp7Dlq1FXlJ7uzfBVJdZNhX.jpg"
+  },
+  {
+    "movieId": 4951,
+    "title": "10 Things I Hate About You",
+    "year": "1999",
+    "backdrop_path": "/qHX1Fnbb4YB4gmDbsCRw7kO98E2.jpg"
+  },
+  {
+    "movieId": 509,
+    "title": "Notting Hill",
+    "year": "1999",
+    "backdrop_path": "/l4VlSCmsGHuGyQf7juLZbG5kb5v.jpg"
+  },
+  {
+    "movieId": 399174,
+    "title": "Isle of Dogs",
+    "year": "2018",
+    "backdrop_path": "/vubuyJ2m7jnfG0oqfKB4p1ayD18.jpg"
+  },
+  {
+    "movieId": 10315,
+    "title": "Fantastic Mr. Fox",
+    "year": "2009",
+    "backdrop_path": "/cBRzBR0dhYdrqFOmggtbKWCMw90.jpg"
+  },
+  {
+    "movieId": 185008,
+    "title": "Yeh Jawaani Hai Deewani",
+    "year": "2013",
+    "backdrop_path": "/90zaZ87amMVKycZyIi2WrnyKXeL.jpg"
+  },
+  {
+    "movieId": 20453,
+    "title": "3 Idiots",
+    "year": "2009",
+    "backdrop_path": "/u7kuUaySqXBVAtqEl9vkTkAzHV9.jpg"
+  },
+  {
+    "movieId": 372058,
+    "title": "Your Name.",
+    "year": "2016",
+    "backdrop_path": "/9sVWHhVcL2dN84R39bxsMAeoUbY.jpg"
+  },
+  {
+    "movieId": 122906,
+    "title": "About Time",
+    "year": "2013",
+    "backdrop_path": "/gfwiI66pkNA6EGgKNZiAsDnnoYc.jpg"
+  },
+  {
+    "movieId": 773,
+    "title": "Little Miss Sunshine",
+    "year": "2006",
+    "backdrop_path": "/fs6p6TfZgblhmTk0hCeEINdeCAl.jpg"
+  },
+  {
+    "movieId": 4538,
+    "title": "The Darjeeling Limited",
+    "year": "2007",
+    "backdrop_path": "/mAe3LQoErWyy28nPXPCKJQmc5xH.jpg"
+  },
+  {
+    "movieId": 546554,
+    "title": "Knives Out",
+    "year": "2019",
+    "backdrop_path": "/g1eZwt1uXQupUY1WpU8iQXkcaK6.jpg"
+  },
+  {
+    "movieId": 675,
+    "title": "Harry Potter and the Order of the Phoenix",
+    "year": "2007",
+    "backdrop_path": "/rWgMifjnvCCIHCkGl0TwzHzeT24.jpg"
+  },
+  {
+    "movieId": 334541,
+    "title": "Manchester by the Sea",
+    "year": "2016",
+    "backdrop_path": "/9SHUu3gp2orIlzpTVQJfasxAdBs.jpg"
+  },
+  {
+    "movieId": 391713,
+    "title": "Lady Bird",
+    "year": "2017",
+    "backdrop_path": "/2ByWxoMbfE3pxztCJn5qTJ5Ui2Y.jpg"
+  },
+  {
+    "movieId": 1100099,
+    "title": "We Live in Time",
+    "year": "2024",
+    "backdrop_path": "/jm9woHZQGaS0B2dshkLF5MvfFgF.jpg"
+  },
+  {
+    "movieId": 87827,
+    "title": "Life of Pi",
+    "year": "2012",
+    "backdrop_path": "/12qE7qdlX3x8CjO5CmsqrhowFeu.jpg"
+  },
+  {
+    "movieId": 496527,
+    "title": "October",
+    "year": "2018",
+    "backdrop_path": "/uC1hPKq6xOStExFw3jiil2FkIXN.jpg"
+  },
+  {
+    "movieId": 50646,
+    "title": "Crazy, Stupid, Love.",
+    "year": "2011",
+    "backdrop_path": "/izxt0tTNWr5DWoTiKzvvd4Hu0pR.jpg"
+  },
+  {
+    "movieId": 329865,
+    "title": "Arrival",
+    "year": "2016",
+    "backdrop_path": "/lO5pFsXSwO7gkUbkhx4W6nooyVe.jpg"
+  },
+  {
+    "movieId": 1233413,
+    "title": "Sinners",
+    "year": "2025",
+    "backdrop_path": "/4mnIKcnNyImUKGoX6B0thTRme6I.jpg"
+  },
+  {
+    "movieId": 872585,
+    "title": "Oppenheimer",
+    "year": "2023",
+    "backdrop_path": "/c5DDMxMfuGE2XVLyPQ9lr5TXlEK.jpg"
   }
 ]

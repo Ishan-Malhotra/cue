@@ -2,10 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* Dark cinema palette is the default ("off"); light is a warm paper counterpart. */
+html.dark {
   color-scheme: dark;
 }
-
-body {
+html.dark body {
   @apply bg-neutral-950 text-neutral-100 antialiased;
+}
+
+html:not(.dark) {
+  color-scheme: light;
+}
+html:not(.dark) body {
+  @apply antialiased;
+  background-color: #f4efe6; /* warm paper */
+  color: #1c1917; /* ink */
 }
