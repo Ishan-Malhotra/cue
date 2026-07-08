@@ -33,10 +33,31 @@ export type SwipedMovie = {
   original_language: string;
 };
 
+// The minimal film shape stored on a card and embedded in a shared payload.
+export type Film = {
+  id: number;
+  title: string;
+  year: string;
+  poster_path: string | null;
+};
+
+// A user can have multiple named, editable cards (CLAUDE.md updated model).
+export type Card = {
+  id: string;
+  name: string;
+  films: Film[];
+  createdAt: number;
+  updatedAt: number;
+};
+
+// Per-card film cap (QR density limit) — enforced per card, not globally.
+export const CARD_FILM_CAP = 25;
+
 const KEYS = {
   taste: "tasteProfile",
   watchlist: "watchlist",
   prefs: "swipePrefs",
+  cards: "cards",
 } as const;
 
 function read<T>(key: string, fallback: T): T {
@@ -134,4 +155,124 @@ export function getTopPrefs(prefs: SwipePrefs = getSwipePrefs()): {
   const genreIds = topN(prefs.genres, 2);
   const [lang] = topN(prefs.langs, 1);
   return { genreIds, lang };
+}
+
+// --- cards (multiple named, editable cards) ---------------------------------
+
+export type AddFilmResult =
+  | { ok: true; card: Card }
+  | { ok: false; reason: "cap" | "duplicate" | "not_found"; card?: Card };
+
+function newCardId(): string {
+  return `card_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toFilm(movie: {
+  id: number;
+  title: string;
+  year: string;
+  poster_path: string | null;
+}): Film {
+  return {
+    id: movie.id,
+    title: movie.title,
+    year: movie.year,
+    poster_path: movie.poster_path,
+  };
+}
+
+export function getCards(): Card[] {
+  return read<Card[]>(KEYS.cards, []);
+}
+
+export function getCard(id: string): Card | undefined {
+  return getCards().find((c) => c.id === id);
+}
+
+function writeCards(cards: Card[]): Card[] {
+  write(KEYS.cards, cards);
+  return cards;
+}
+
+export function createCard(name = "Untitled card"): Card {
+  const now = Date.now();
+  const card: Card = {
+    id: newCardId(),
+    name: name.trim() || "Untitled card",
+    films: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+  writeCards([...getCards(), card]);
+  return card;
+}
+
+export function deleteCard(id: string): Card[] {
+  return writeCards(getCards().filter((c) => c.id !== id));
+}
+
+// Apply a patch to one card, bumping updatedAt. Returns the updated card (or
+// undefined if the id doesn't exist).
+function mutateCard(
+  id: string,
+  fn: (card: Card) => Card,
+): Card | undefined {
+  const cards = getCards();
+  const idx = cards.findIndex((c) => c.id === id);
+  if (idx === -1) return undefined;
+  const updated = { ...fn(cards[idx]), updatedAt: Date.now() };
+  cards[idx] = updated;
+  writeCards(cards);
+  return updated;
+}
+
+export function renameCard(id: string, name: string): Card | undefined {
+  return mutateCard(id, (c) => ({ ...c, name: name.trim() || c.name }));
+}
+
+export function addFilmToCard(
+  id: string,
+  movie: { id: number; title: string; year: string; poster_path: string | null },
+): AddFilmResult {
+  const card = getCard(id);
+  if (!card) return { ok: false, reason: "not_found" };
+  if (card.films.some((f) => f.id === movie.id)) {
+    return { ok: false, reason: "duplicate", card };
+  }
+  if (card.films.length >= CARD_FILM_CAP) {
+    return { ok: false, reason: "cap", card };
+  }
+  const updated = mutateCard(id, (c) => ({
+    ...c,
+    films: [...c.films, toFilm(movie)],
+  }));
+  return { ok: true, card: updated as Card };
+}
+
+export function removeFilmFromCard(
+  id: string,
+  filmId: number,
+): Card | undefined {
+  return mutateCard(id, (c) => ({
+    ...c,
+    films: c.films.filter((f) => f.id !== filmId),
+  }));
+}
+
+// Fork a decoded shared card into the viewer's own collection as a brand-new
+// card (new id + timestamps). Films are trimmed to the cap defensively.
+export function saveSharedCardAsMine(shared: {
+  name: string;
+  films: Film[];
+}): Card {
+  const now = Date.now();
+  const card: Card = {
+    id: newCardId(),
+    name: shared.name?.trim() || "Shared card",
+    films: shared.films.slice(0, CARD_FILM_CAP),
+    createdAt: now,
+    updatedAt: now,
+  };
+  writeCards([...getCards(), card]);
+  return card;
 }

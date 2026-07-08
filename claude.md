@@ -2,7 +2,7 @@ Project: Taste Card
 
 One-sentence definition
 
-A free, no-login-required (Phase A) website where you build a personal movie taste profile by swiping through films, curate a hand-picked subset into a shareable "taste card," and let anyone view your card instantly via a QR code or link — no account required to view a shared card, no server-side database in Phase A, zero cost to build or use.
+A free, no-login-required (Phase A) website where you build a personal movie taste profile by swiping through films, then curate one or more named, editable "cards" (e.g. a general taste card, or a personalized one for a specific friend) and share any of them instantly via a QR code, link, or native share sheet (WhatsApp/Instagram/etc.) — no account required to view a shared card, no server-side database in Phase A, zero cost to build or use.
 
 Current phase
 
@@ -10,14 +10,15 @@ Phase A — swipe deck + card + share, localStorage only.
 Phase B (accounts, database, "blend" feature with friends) is future work — do not build toward it yet, see Out of Scope below.
 
 
-Screens (five total)
+Screens (six total)
 
 
-/ — landing page. Two entry points: "Explore" (→ /explore) and "My Taste Profile" (→ /taste) and "My Card" (→ /card).
+/ — landing page. Entry points: "Explore" (→ /explore), "My Taste Profile" (→ /taste), "My Cards" (→ /card).
 /explore — genre + language filter chips at top, swipeable film deck below.
-/taste — grid view of everything in tasteProfile (all liked films). Each film has an "add to card" toggle to promote it into myCard.
-/card — the curated myCard grid, plus a share button that generates a compressed URL and a QR code from it.
-/card?d=<compressed> — read-only view of someone else's shared card, decoded entirely from the URL param. Has a "save this as mine" (fork) button. This route must never call TMDB or any API — it renders purely from the decoded payload.
+/taste — grid view of everything in tasteProfile (all liked films). Read/reference source for building cards — does not write to any card itself.
+/card — list of the user's cards (multiple, named, e.g. "My taste," "Horror picks for Amit"). Each entry shows name, film-count preview, edit + share actions, plus a "+ New card" button.
+/card/[id] — editable view of a single card: rename it, add films (from tasteProfile primarily, or via inline TMDB search for a film not yet swiped), remove films, reorder. Share panel here: tries navigator.share() first (native share sheet — WhatsApp/Instagram/etc. if installed, mobile-first), falls back to a visible link + QR + copy button when Web Share isn't supported. Per-card cap ~20-25 films.
+/card/[id]?d=<compressed> (or a dedicated shared-view route) — read-only view of someone else's shared card, decoded entirely from the URL param. Has a "save this as mine" (fork) button, which copies the card into the viewer's own cards collection. This route must never call TMDB or any API — it renders purely from the decoded payload.
 
 
 
@@ -33,11 +34,20 @@ watchlist: [
 ]
 // Swipe up. Private "want to watch" staging list. Not shared.
 
-myCard: [
-  { id, title, year, poster_path }
+cards: [
+  {
+    id,            // unique string, e.g. "card_" + random/timestamp
+    name,          // user-editable, e.g. "My taste", "Horror picks for Amit"
+    films: [ { id, title, year, poster_path } ],   // capped ~20-25 per card
+    createdAt,
+    updatedAt
+  }
 ]
-// Manually curated subset of tasteProfile, promoted via the toggle on /taste.
-// This is the ONLY list that gets shared/QR'd. Cap at ~20-25 entries (QR density limit).
+// A user can have multiple named, editable cards. Each is built on /card/[id]
+// primarily from tasteProfile, but films can also be added via inline TMDB
+// search (for a friend-specific pick not yet swiped). This is the ONLY
+// data that gets shared/QR'd, one card at a time. Cap each card's `films`
+// at ~20-25 entries (QR density limit) — enforced per card, not globally.
 
 swipePrefs: {
   genres: { "28": 12, "35": 4 },  // TMDB genre id -> right-swipe count
@@ -54,7 +64,7 @@ Swipe gesture meanings (locked — do not reinterpret)
 Right = liked → append to tasteProfile, increment swipePrefs
 Left = skip → no storage write at all
 Up = add to watchlist
-There is no swipe gesture for adding to myCard. Card curation is a deliberate, separate action that happens on /taste, never inside the swipe deck. Do not add a fourth swipe direction for this.
+There is no swipe gesture for adding to a card. Card curation is a deliberate, separate action that happens on /card/[id], never inside the swipe deck. Do not add a fourth swipe direction for this. /taste is a reference/browse screen for tasteProfile, not itself a card-editing surface.
 
 
 
@@ -62,10 +72,12 @@ Hard constraints
 
 
 All TMDB requests go through server-side proxy routes — /api/tmdb/search, /api/tmdb/trending, /api/tmdb/discover. Never call TMDB directly from client components. Reason: TMDB's domains are intermittently blocked by Indian ISPs (Jio especially); proxying through Vercel's servers makes the block invisible to end users. This is a reliability requirement, not a style preference — don't "simplify" it back to direct client calls.
-The shared card view (/card?d=...) must be fully self-contained. All data needed to render it (title, year, poster_path) must be embedded in the compressed URL payload itself — never re-fetched from TMDB on load. This is what makes viewing a shared card free and fast regardless of TMDB availability.
+The shared card view must be fully self-contained. All data needed to render it (name, films: title/year/poster_path) must be embedded in the compressed URL payload itself — never re-fetched from TMDB on load. This is what makes viewing a shared card free and fast regardless of TMDB availability.
 No accounts, no server database, no login in Phase A. Everything lives in localStorage. Do not suggest or scaffold auth/database code in this phase.
-Use lz-string to compress the myCard array into the ?d= URL param, and the qrcode npm package to render a QR from that URL client-side. No external QR API calls.
-Cap myCard at ~20-25 films — keeps QR density scannable. Enforce this as a UI limit on the "add to card" toggle in /taste.
+Use lz-string to compress a single card's {name, films} into the share URL's ?d= param, and the qrcode npm package to render a QR from that URL client-side. No external QR API calls.
+Cap each card's films at ~20-25 — keeps QR density scannable. Enforce this as a UI limit on /card/[id] when adding films, with a clear message (not a silent failure) when the cap is hit.
+Sharing uses navigator.share() first (covers WhatsApp/Instagram/etc. via the native share sheet on mobile), falling back to a visible link + QR + copy button when Web Share isn't supported (typically desktop). Don't build separate per-platform integrations.
+/card/[id] may call /api/tmdb/search for the inline "add a film not in your taste profile" flow — same server-side proxy rule as everywhere else applies.
 
 
 
@@ -100,7 +112,9 @@ Build order (for reference, don't build all at once)
 Scaffold Next.js + Tailwind + the three TMDB proxy API routes
 /explore: filter chips + swipe deck, wired to the three storage writes
 swipePrefs weighting logic feeding future /discover calls
-/taste: grid of tasteProfile + "add to card" toggle (with the 20-25 cap)
-/card: grid + share button + QR generation
-/card?d=: decode + render read-only + fork button
+/taste: grid view of tasteProfile (browse/reference only)
+/card: list of the user's cards, "+ New card" action
+/card/[id]: edit a single card — rename, add films (from tasteProfile or inline TMDB search), remove, reorder, per-card cap enforcement
+/card/[id] share panel: navigator.share() first, fallback to link + QR + copy
+Shared read-only view (?d= payload): decode + render + fork-to-my-cards button
 Deploy to Vercel, test the swipe deck and QR scan flow on a real phone before adding anything further

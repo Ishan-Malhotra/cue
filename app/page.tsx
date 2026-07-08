@@ -13,8 +13,8 @@ const ENTRIES = [
   },
   {
     href: "/card",
-    title: "My Card",
-    blurb: "Your curated taste card — share it via QR or link.",
+    title: "My Cards",
+    blurb: "Your curated taste cards — share any of them via QR or link.",
   },
 ];
 
