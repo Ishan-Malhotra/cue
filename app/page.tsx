@@ -1,55 +1,75 @@
-import Link from "next/link";
+"use client";
 
-const ENTRIES = [
-  {
-    href: "/explore",
-    title: "Explore",
-    blurb: "Swipe through films and build your taste profile.",
-  },
-  {
-    href: "/taste",
-    title: "My Taste Profile",
-    blurb: "Everything you liked. Promote favorites onto your card.",
-  },
-  {
-    href: "/card",
-    title: "My Cards",
-    blurb: "Your curated taste cards — share any of them via QR or link.",
-  },
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getCuratedBackdrops, pickRandom, type Backdrop } from "@/lib/backdrops";
+
+const BACKDROP_BASE = "https://image.tmdb.org/t/p/w780";
+
+const ACTIONS = [
+  { href: "/search", label: "search" },
+  { href: "/explore", label: "explore" },
+  { href: "/card", label: "share" },
 ];
 
 export default function HomePage() {
+  const [backdrops, setBackdrops] = useState<Backdrop[]>([]);
+
+  // Fresh random selection on each page load (client-side so it varies per visit).
+  useEffect(() => {
+    setBackdrops(pickRandom(getCuratedBackdrops(), 2));
+  }, []);
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-10 px-6 py-16">
-      <header className="space-y-3">
-        <h1 className="text-4xl font-bold tracking-tight">Taste Card</h1>
-        <p className="text-neutral-400">
-          Build a personal movie taste profile by swiping, curate a shareable
-          card, and let anyone view it instantly.
-        </p>
-      </header>
+    <main className="mx-auto grid min-h-screen max-w-6xl grid-cols-1 items-center gap-10 px-6 py-12 md:grid-cols-2">
+      {/* Left: branding + actions */}
+      <div className="flex flex-col gap-10">
+        <div>
+          <h1 className="text-6xl font-black tracking-tight">cue</h1>
+          <p className="mt-1 text-sm text-neutral-500">by ishan</p>
+          <p className="mt-6 text-lg text-neutral-300">network - with cinema.</p>
+        </div>
 
-      <nav className="grid gap-4">
-        {ENTRIES.map((entry) => (
-          <Link
-            key={entry.href}
-            href={entry.href}
-            className="group rounded-xl border border-neutral-800 bg-neutral-900/50 p-5 transition-colors hover:border-neutral-600 hover:bg-neutral-900"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-semibold">{entry.title}</span>
-              <span className="text-neutral-500 transition-transform group-hover:translate-x-0.5">
-                →
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-neutral-400">{entry.blurb}</p>
-          </Link>
-        ))}
-      </nav>
+        <nav className="flex flex-col gap-4">
+          {ACTIONS.map((a) => (
+            <Link
+              key={a.href}
+              href={a.href}
+              className="w-48 bg-neutral-900 px-6 py-3 text-center text-lg font-semibold text-white transition-colors hover:bg-neutral-800"
+            >
+              {a.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
 
-      <p className="text-xs text-neutral-600">
-        Phase A · no login required · these screens land in later steps.
-      </p>
+      {/* Right: curated backdrop stack */}
+      <div className="flex flex-col gap-4">
+        {backdrops.length === 0 ? (
+          <div className="flex aspect-video items-center justify-center rounded-lg border border-dashed border-neutral-800 text-sm text-neutral-600">
+            No backdrops curated yet — add some on{" "}
+            <Link href="/dev" className="ml-1 underline">
+              /dev
+            </Link>
+          </div>
+        ) : (
+          backdrops.map((b) => (
+            <Link
+              key={`${b.movieId}-${b.backdrop_path}`}
+              href={`/movie/${b.movieId}`}
+              className="group relative block overflow-hidden rounded-sm"
+              title={b.title}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`${BACKDROP_BASE}${b.backdrop_path}`}
+                alt={b.title}
+                className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+            </Link>
+          ))
+        )}
+      </div>
     </main>
   );
 }

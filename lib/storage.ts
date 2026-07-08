@@ -107,7 +107,15 @@ export function getWatchlist(): WatchlistEntry[] {
   return read<WatchlistEntry[]>(KEYS.watchlist, []);
 }
 
-export function addToWatchlist(movie: SwipedMovie): WatchlistEntry[] {
+// Accepts any movie carrying the four stored fields (DiscoverMovie, MovieDetail,
+// Film all satisfy this) — the swipe deck and the /movie/[id] binary toggle both
+// use it.
+export function addToWatchlist(movie: {
+  id: number;
+  title: string;
+  year: string;
+  poster_path: string | null;
+}): WatchlistEntry[] {
   const list = getWatchlist();
   if (list.some((m) => m.id === movie.id)) return list;
   const entry: WatchlistEntry = {
@@ -119,6 +127,16 @@ export function addToWatchlist(movie: SwipedMovie): WatchlistEntry[] {
   const next = [...list, entry];
   write(KEYS.watchlist, next);
   return next;
+}
+
+export function removeFromWatchlist(id: number): WatchlistEntry[] {
+  const next = getWatchlist().filter((m) => m.id !== id);
+  write(KEYS.watchlist, next);
+  return next;
+}
+
+export function isInWatchlist(id: number): boolean {
+  return getWatchlist().some((m) => m.id === id);
 }
 
 // --- swipePrefs (weighted counters, bumped on right swipe) ------------------
