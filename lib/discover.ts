@@ -1,11 +1,31 @@
 // Client-side helper for /explore. Builds the /api/tmdb/discover query by
-// merging the user's manually-selected filter chips with the swipePrefs
-// weighted bias, then fetches through our proxy (never TMDB directly).
+// merging filter chips with the local tasteModel, then fetches through our
+// proxy (never TMDB directly).
 
-import { getTopPrefs, getSwipePrefs } from "@/lib/storage";
+import {
+  getDominantLanguage,
+  getStrongNegativeGenres,
+  getTasteModel,
+  getTopPositiveGenres,
+  type TasteModel,
+} from "@/lib/storage";
+import { sortByTasteScore } from "@/lib/rank";
 
-// swipePrefs bias only kicks in once the user has enough history.
-export const BIAS_THRESHOLD = 10;
+// Genre bias: enough history AND at least one like (never activate on skips only).
+export const GENRE_BIAS_SWIPES = 5;
+export const GENRE_BIAS_LIKES = 1;
+
+// Language is blunter — activate later, and only with a clear margin.
+export const LANG_BIAS_SWIPES = 10;
+
+// If a constrained query returns fewer than this, retry without without_genres.
+export const THIN_RESULT_THRESHOLD = 8;
+
+const SORT_ROTATION = [
+  "popularity.desc",
+  "vote_average.desc",
+  "primary_release_date.desc",
+] as const;
 
 export type Selection = {
   genreIds: number[]; // selected genre chips (multi-select, OR)
@@ -35,50 +55,72 @@ type TmdbDiscoverResult = {
   vote_average?: number;
 };
 
-// Per-dimension precedence: an explicitly selected chip wins for that
-// dimension; any dimension left unselected falls back to the weighted bias
-// once tasteCount >= BIAS_THRESHOLD. Below threshold and unselected => omit
-// (plain popularity discover).
+export function isGenreBiasActive(model: TasteModel = getTasteModel()): boolean {
+  return (
+    model.swipeCount >= GENRE_BIAS_SWIPES && model.likeCount >= GENRE_BIAS_LIKES
+  );
+}
+
+export function isLangBiasActive(model: TasteModel = getTasteModel()): boolean {
+  return model.swipeCount >= LANG_BIAS_SWIPES;
+}
+
 export function buildDiscoverQuery(
   selected: Selection,
-  tasteCount: number,
+  model: TasteModel = getTasteModel(),
+  options: { sortBy?: string; omitWithoutGenres?: boolean } = {},
 ): URLSearchParams {
-  const params = new URLSearchParams({ sort_by: "popularity.desc" });
-  const biasReady = tasteCount >= BIAS_THRESHOLD;
-  const top = biasReady ? getTopPrefs(getSwipePrefs()) : null;
+  const sortBy =
+    options.sortBy ??
+    SORT_ROTATION[model.swipeCount % SORT_ROTATION.length];
+  const params = new URLSearchParams({ sort_by: sortBy });
 
-  // Genres: chips (OR via "|") win; else top weighted genres.
-  if (selected.genreIds.length > 0) {
-    params.set("with_genres", selected.genreIds.join("|"));
-  } else if (top && top.genreIds.length > 0) {
-    params.set("with_genres", top.genreIds.join("|"));
+  // vote_average.desc without a floor returns 1-vote junk and flaky pages.
+  if (sortBy === "vote_average.desc") {
+    params.set("vote_count.gte", "100");
   }
 
-  // Language: chip wins; else top weighted language.
+  const genreBias = isGenreBiasActive(model);
+  const langBias = isLangBiasActive(model);
+
+  // Genres: chips (OR via "|") win; else top positive genres with "|".
+  // Never join with comma — TMDB treats comma as AND and starves results.
+  let withGenres = "";
+  if (selected.genreIds.length > 0) {
+    withGenres = selected.genreIds.join("|");
+  } else if (genreBias) {
+    withGenres = getTopPositiveGenres(model, 2).join("|");
+  }
+  if (withGenres) params.set("with_genres", withGenres);
+
+  // Negatives only when we also have a positive genre anchor — otherwise
+  // without_genres alone over-constrains and invites empty/flaky responses.
+  if (
+    genreBias &&
+    withGenres &&
+    !options.omitWithoutGenres &&
+    selected.genreIds.length === 0
+  ) {
+    const negatives = getStrongNegativeGenres(model, -2, 2).filter(
+      (id) => !withGenres.split("|").includes(id),
+    );
+    if (negatives.length > 0) {
+      params.set("without_genres", negatives.join("|"));
+    }
+  }
+
+  // Language: chip wins; else dominant lang under the stricter gate.
   if (selected.lang) {
     params.set("with_original_language", selected.lang);
-  } else if (top && top.lang) {
-    params.set("with_original_language", top.lang);
+  } else if (langBias) {
+    const lang = getDominantLanguage(model);
+    if (lang) params.set("with_original_language", lang);
   }
 
   return params;
 }
 
-export async function fetchDiscover(
-  selected: Selection,
-  tasteCount: number,
-  page: number,
-): Promise<DiscoverMovie[]> {
-  const params = buildDiscoverQuery(selected, tasteCount);
-  params.set("page", String(page));
-
-  const res = await fetch(`/api/tmdb/discover?${params.toString()}`);
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data?.error || `Discover failed (${res.status})`);
-  }
-
-  const results: TmdbDiscoverResult[] = data.results ?? [];
+function mapResults(results: TmdbDiscoverResult[]): DiscoverMovie[] {
   return results.map((m) => ({
     id: m.id,
     title: m.title || m.name || "Untitled",
@@ -89,4 +131,61 @@ export async function fetchDiscover(
     overview: m.overview ?? "",
     vote_average: m.vote_average ?? 0,
   }));
+}
+
+async function fetchDiscoverPage(
+  params: URLSearchParams,
+): Promise<DiscoverMovie[]> {
+  const url = `/api/tmdb/discover?${params.toString()}`;
+  let lastError: Error | null = null;
+
+  // One retry — TMDB via the proxy intermittently returns "fetch failed".
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          (data && data.error) || `Discover failed (${res.status})`,
+        );
+      }
+      return mapResults(data?.results ?? []);
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error("Discover failed");
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    }
+  }
+
+  throw lastError ?? new Error("Discover failed");
+}
+
+export async function fetchDiscover(
+  selected: Selection,
+  page: number,
+  model: TasteModel = getTasteModel(),
+): Promise<DiscoverMovie[]> {
+  const base = buildDiscoverQuery(selected, model);
+  base.set("page", String(page));
+
+  let movies = await fetchDiscoverPage(base);
+
+  // Thin-result fallback: drop without_genres before touching with_genres.
+  if (movies.length < THIN_RESULT_THRESHOLD && base.has("without_genres")) {
+    const retry = buildDiscoverQuery(selected, model, {
+      sortBy: base.get("sort_by") ?? undefined,
+      omitWithoutGenres: true,
+    });
+    retry.set("page", String(page));
+    movies = await fetchDiscoverPage(retry);
+  }
+
+  return sortByTasteScore(movies, model);
+}
+
+/** Starting page for soft resets so we don't keep re-eating page 1. */
+export function softResetStartPage(model: TasteModel, seenSize: number): number {
+  const offset = Math.floor(seenSize / 20) + Math.floor(model.swipeCount / 8);
+  return Math.min(1 + (offset % 15), 20);
 }

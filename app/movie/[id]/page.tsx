@@ -2,18 +2,30 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { getMovieDetail, type MovieDetail } from "@/lib/movie";
+import { useParams, useRouter } from "next/navigation";
 import {
+  formatRuntime,
+  getMovieDetail,
+  type MovieDetail,
+} from "@/lib/movie";
+import {
+  addToTasteProfile,
   addToWatchlist,
+  applyTasteSignal,
+  getTasteProfile,
   isInWatchlist,
   removeFromWatchlist,
 } from "@/lib/storage";
 
 const BACKDROP_BASE = "https://image.tmdb.org/t/p/w1280";
+const POSTER_BASE = "https://image.tmdb.org/t/p/w342";
+const CAST_BASE = "https://image.tmdb.org/t/p/w185";
+
+type Verdict = "liked" | "skipped" | null;
 
 export default function MoviePage() {
   const params = useParams();
+  const router = useRouter();
   const id = Array.isArray(params.id) ? params.id[0] : (params.id ?? "");
 
   const [movie, setMovie] = useState<MovieDetail | null>(null);
@@ -22,6 +34,7 @@ export default function MoviePage() {
   );
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [verdict, setVerdict] = useState<Verdict>(null);
 
   useEffect(() => {
     let active = true;
@@ -30,6 +43,9 @@ export default function MoviePage() {
         if (!active) return;
         setMovie(m);
         setSaved(isInWatchlist(m.id));
+        setVerdict(
+          getTasteProfile().some((t) => t.id === m.id) ? "liked" : null,
+        );
         setStatus("ready");
       })
       .catch((e) => {
@@ -42,8 +58,6 @@ export default function MoviePage() {
     };
   }, [id]);
 
-  // Binary watchlist toggle — writes ONLY to watchlist (never tasteProfile or a
-  // card). No reject/skip here; that belongs to the swipe deck.
   function toggleWatchlist() {
     if (!movie) return;
     if (saved) {
@@ -51,13 +65,27 @@ export default function MoviePage() {
       setSaved(false);
     } else {
       addToWatchlist(movie);
+      applyTasteSignal(movie, "up");
       setSaved(true);
     }
   }
 
+  function like() {
+    if (!movie || verdict === "liked") return;
+    addToTasteProfile(movie);
+    applyTasteSignal(movie, "right");
+    setVerdict("liked");
+  }
+
+  function skip() {
+    if (!movie || verdict) return;
+    applyTasteSignal(movie, "left");
+    setVerdict("skipped");
+  }
+
   if (status === "loading") {
     return (
-      <main className="flex min-h-screen items-center justify-center">
+      <main className="flex min-h-screen items-center justify-center bg-app">
         <p className="text-muted">Loading…</p>
       </main>
     );
@@ -77,60 +105,174 @@ export default function MoviePage() {
     );
   }
 
+  const runtime = formatRuntime(movie.runtime);
+  const metaBits = [
+    movie.year || null,
+    runtime,
+    movie.director ? `Dir. ${movie.director}` : null,
+  ].filter(Boolean);
+
   return (
-    <main className="min-h-screen pb-16">
-      <div className="relative">
-        {movie.backdrop_path && (
+    <main className="min-h-screen bg-app pb-20">
+      {/* Full-bleed hero */}
+      <section className="relative isolate min-h-[52vh] overflow-hidden sm:min-h-[58vh]">
+        {movie.backdrop_path ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={`${BACKDROP_BASE}${movie.backdrop_path}`}
-            alt={movie.title}
-            className="h-64 w-full object-cover sm:h-96"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
           />
+        ) : (
+          <div className="absolute inset-0 bg-surface-2" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-app via-app/40 to-transparent" />
-        <Link
-          href="/"
-          className="absolute left-4 top-4 rounded-full bg-black/50 px-3 py-1 text-sm text-white backdrop-blur hover:bg-black/70"
-        >
-          ← Home
-        </Link>
-      </div>
-
-      <div className="mx-auto -mt-16 max-w-2xl px-6">
-        <h1 className="text-3xl font-bold">
-          {movie.title}
-          {movie.year && (
-            <span className="ml-2 text-xl font-normal text-muted">
-              {movie.year}
-            </span>
-          )}
-        </h1>
-
-        {movie.genres.length > 0 && (
-          <p className="mt-2 text-sm uppercase tracking-wide text-muted">
-            {movie.genres.join(" · ")}
-          </p>
-        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-app via-app/70 to-black/30" />
 
         <button
           type="button"
-          onClick={toggleWatchlist}
-          aria-pressed={saved}
-          className={
-            "mt-5 rounded-full px-5 py-2 text-sm font-semibold transition-colors " +
-            (saved
-              ? "bg-sky-500 text-white hover:bg-sky-600"
-              : "border border-muted text-fg hover:border-muted")
-          }
+          onClick={() => router.back()}
+          className="absolute left-4 top-4 z-10 rounded-full bg-black/45 px-3 py-1.5 text-sm text-white backdrop-blur-sm transition-colors hover:bg-black/65"
         >
-          {saved ? "✓ On your watchlist" : "+ Add to watchlist"}
+          ← Back
         </button>
 
+        <div className="absolute inset-x-0 bottom-0 z-10 mx-auto flex max-w-3xl gap-5 px-5 pb-6 pt-24 sm:gap-7 sm:px-8">
+          <div className="relative w-28 shrink-0 overflow-hidden rounded-md shadow-2xl ring-1 ring-white/10 sm:w-36">
+            {movie.poster_path ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`${POSTER_BASE}${movie.poster_path}`}
+                alt={movie.title}
+                className="aspect-[2/3] w-full object-cover"
+              />
+            ) : (
+              <div className="flex aspect-[2/3] items-center justify-center bg-surface-2 p-2 text-center text-xs text-muted">
+                {movie.title}
+              </div>
+            )}
+          </div>
+
+          <div className="flex min-w-0 flex-1 flex-col justify-end pb-1">
+            <h1 className="text-3xl font-bold leading-tight tracking-tight text-white drop-shadow sm:text-4xl">
+              {movie.title}
+            </h1>
+            {metaBits.length > 0 && (
+              <p className="mt-2 text-sm text-white/75 sm:text-base">
+                {metaBits.join(" · ")}
+              </p>
+            )}
+            {movie.genres.length > 0 && (
+              <p className="mt-3 text-xs uppercase tracking-[0.14em] text-white/60">
+                {movie.genres.join("  ·  ")}
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-3xl px-5 sm:px-8">
+        {/* Cast */}
+        {movie.cast.length > 0 && (
+          <section className="mt-8">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+              Cast
+            </h2>
+            <ul className="-mx-5 mt-4 flex gap-4 overflow-x-auto px-5 pb-2 sm:-mx-8 sm:px-8">
+              {movie.cast.map((person) => (
+                <li
+                  key={person.id}
+                  className="w-20 shrink-0 text-center sm:w-24"
+                >
+                  <div className="mx-auto aspect-square w-full overflow-hidden rounded-full bg-surface-2 ring-1 ring-line">
+                    {person.profile_path ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`${CAST_BASE}${person.profile_path}`}
+                        alt={person.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-lg text-muted">
+                        {person.name.slice(0, 1)}
+                      </div>
+                    )}
+                  </div>
+                  <p
+                    className="mt-2 truncate text-xs font-medium text-fg"
+                    title={person.name}
+                  >
+                    {person.name}
+                  </p>
+                  {person.character && (
+                    <p
+                      className="truncate text-[10px] text-muted"
+                      title={person.character}
+                    >
+                      {person.character}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Actions */}
+        <section className="mt-8 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={like}
+            disabled={verdict === "liked"}
+            aria-pressed={verdict === "liked"}
+            className={
+              "rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 " +
+              (verdict === "liked"
+                ? "bg-green-600 text-white"
+                : "border border-line text-fg hover:border-green-500 hover:text-green-500")
+            }
+          >
+            {verdict === "liked" ? "♥ Liked" : "♥ Like"}
+          </button>
+          <button
+            type="button"
+            onClick={skip}
+            disabled={!!verdict}
+            aria-pressed={verdict === "skipped"}
+            className={
+              "rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 " +
+              (verdict === "skipped"
+                ? "bg-red-600 text-white"
+                : "border border-line text-fg hover:border-red-500 hover:text-red-500")
+            }
+          >
+            {verdict === "skipped" ? "✕ Skipped" : "✕ Skip"}
+          </button>
+          <button
+            type="button"
+            onClick={toggleWatchlist}
+            aria-pressed={saved}
+            className={
+              "rounded-full px-5 py-2.5 text-sm font-semibold transition-colors " +
+              (saved
+                ? "bg-sky-500 text-white hover:bg-sky-600"
+                : "border border-line text-fg hover:border-muted")
+            }
+          >
+            {saved ? "✓ Watchlist" : "+ Watchlist"}
+          </button>
+        </section>
+
+        {/* Summary */}
         {movie.overview && (
-          <p className="mt-6 leading-relaxed text-muted">
-            {movie.overview}
-          </p>
+          <section className="mt-10">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+              Summary
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-fg/85">
+              {movie.overview}
+            </p>
+          </section>
         )}
       </div>
     </main>

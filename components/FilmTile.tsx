@@ -7,16 +7,33 @@ export type TileAction = {
   label: string;
   onClick: () => void;
   disabled?: boolean;
-  kind?: "add" | "remove";
+  kind?: "add" | "remove" | "like" | "skip";
 };
+
+function actionClass(kind?: TileAction["kind"]): string {
+  switch (kind) {
+    case "remove":
+    case "skip":
+      return "bg-red-600/90 text-white hover:bg-red-500";
+    case "like":
+      return "bg-green-600/90 text-white hover:bg-green-500";
+    default:
+      return "bg-fg/90 text-app hover:bg-fg";
+  }
+}
 
 export default function FilmTile({
   film,
   action,
+  actions,
 }: {
   film: Film;
+  /** Single action (legacy). Prefer `actions` when you need more than one. */
   action?: TileAction;
+  actions?: TileAction[];
 }) {
+  const buttons = actions ?? (action ? [action] : []);
+
   return (
     <div className="group relative overflow-hidden rounded-lg bg-surface-2">
       <div className="aspect-[2/3] w-full">
@@ -42,22 +59,29 @@ export default function FilmTile({
         {film.year && <p className="text-[10px] text-muted">{film.year}</p>}
       </div>
 
-      {action && (
-        <button
-          type="button"
-          aria-label={action.label}
-          title={action.label}
-          disabled={action.disabled}
-          onClick={action.onClick}
-          className={
-            "absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold shadow transition-colors disabled:cursor-not-allowed disabled:opacity-40 " +
-            (action.kind === "remove"
-              ? "bg-red-600/90 text-white hover:bg-red-500"
-              : "bg-fg/90 text-app hover:bg-fg")
-          }
-        >
-          {action.icon}
-        </button>
+      {buttons.length > 0 && (
+        <div className="absolute right-1 top-1 flex flex-col gap-1">
+          {buttons.map((btn) => (
+            <button
+              key={btn.label}
+              type="button"
+              aria-label={btn.label}
+              title={btn.label}
+              disabled={btn.disabled}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                btn.onClick();
+              }}
+              className={
+                "flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold shadow transition-colors disabled:cursor-not-allowed disabled:opacity-40 " +
+                actionClass(btn.kind)
+              }
+            >
+              {btn.icon}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

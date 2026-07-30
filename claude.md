@@ -13,10 +13,10 @@ Phase B (accounts, database, "blend" feature with friends) is future work — do
 Screens (eight total)
 
 
-/ — landing/home page. Structure (visual design still in flux, do not lock in exact mockup styling): app name/branding, tagline, three primary entry actions — Search, Explore (→ /explore), Share / My Taste Profile (→ /card). Alongside/around these, a rotating display of movie backdrops pulled from TMDB (e.g. trending/popular), refreshed each time the page loads. Clicking a backdrop navigates to that film's /movie/[id] page.
-/explore — genre + language filter chips at top, swipeable film deck below.
-/movie/[id] — a dedicated page per film: backdrop/poster, title, overview, year, genres. Has a single "add to watchlist" toggle (binary on/off — not a three-way swipe/reject; this page is not the swipe deck). Reached by clicking a home page backdrop, or by selecting a result from Search.
-Search — a search flow (can live on /, or its own /search route — Claude Code's call) hitting /api/tmdb/search; selecting a result navigates to /movie/[id].
+/ — landing/home page. Structure (visual design still in flux, do not lock in exact mockup styling): app name/branding, tagline, three primary entry actions — Search, Explore (→ /explore), Share / My Taste Profile (→ /card). Alongside/around these, a rotating display of curated movie backdrops (data/backdrops.json), refreshed each time the page loads. Clicking a backdrop navigates to that film's /movie/[id] page.
+/explore — genre + language filter chips at top, swipeable film deck below. Tap the top card → /movie/[id]. Magnifying-glass header link → /search?from=explore. Left/right/up train tasteModel (see schema).
+/movie/[id] — full-bleed film page: backdrop + poster, title, year/runtime/director, genres, cast row, Like / Skip / Watchlist actions, then summary. Like → tasteProfile + tasteModel; Skip → tasteModel only; Watchlist → watchlist (+ mild up signal). Reached from home backdrops, explore tap, or search.
+/search — typeahead suggestions while typing; result posters link to /movie/[id]; ♥ / ✕ on tiles train taste the same as explore. Can be opened from home or explore.
 /taste — grid view of everything in tasteProfile (all liked films). Read/reference source for building cards — does not write to any card itself.
 /card — list of the user's cards (multiple, named, e.g. "My taste," "Horror picks for Amit"). Each entry shows name, film-count preview, edit + share actions, plus a "+ New card" button.
 /card/[id] — editable view of a single card: rename it, add films (from tasteProfile primarily, or via inline TMDB search for a film not yet swiped), remove films, reorder. Share panel here: tries navigator.share() first (native share sheet — WhatsApp/Instagram/etc. if installed, mobile-first), falls back to a visible link + QR + copy button when Web Share isn't supported. Per-card cap ~20-25 films.
@@ -28,10 +28,11 @@ Note on visual design: the home page mockup discussed with the user (dark image 
 
 Data schema (localStorage only, Phase A)
 
-jstasteProfile: [
+tasteProfile: [
   { id, title, year, poster_path, likedAt }
 ]
-// Everything swiped right. Full history. Feeds swipePrefs. Not shown/shared as-is.
+// Everything liked (right swipe / search♥ / movie Like). Full history. Feeds
+// tasteModel. Not shown/shared as-is.
 
 watchlist: [
   { id, title, year, poster_path }
@@ -54,20 +55,38 @@ cards: [
 // at ~20-25 entries (QR density limit) — enforced per card, not globally.
 
 swipePrefs: {
-  genres: { "28": 12, "35": 4 },  // TMDB genre id -> right-swipe count
-  langs: { "en": 20, "hi": 8 }    // language code -> right-swipe count
+  genres: { "28": 12, "35": 4 },  // legacy — migrated once into tasteModel
+  langs: { "en": 20, "hi": 8 }
 }
-// Simple weighted counter, NOT a recommendation model.
-// Before each new /discover fetch in /explore, bias query params toward the
-// top 1-2 weighted genres/langs once enough swipes exist (~10+).
+// DEPRECATED for explore bias. One-shot migrate: top-2 genres + top-1 lang
+// each seed at +2.0 into tasteModel, then the key is removed.
+
+tasteModel: {
+  genres: { "28": 4.2, "35": -1.1 }, // signed weights (like +, skip -)
+  langs: { "en": 3.0, "hi": 0.4 },
+  seen: [123, 456],                  // FIFO, capped at 500
+  swipeCount: 12,
+  likeCount: 5                       // right-swipes only
+}
+// Online taste model for /explore (localStorage only — still no accounts/DB).
+// Update rule (order matters): weights[k] = weights[k] * 0.98 + delta
+//   right: genre +1.0, lang +1.0
+//   left:  genre -0.6, lang -0.4   (trains model; does NOT write tasteProfile)
+//   up:    genre +0.3, lang +0.3   (also writes watchlist)
+// With decay 0.98, weights asymptote to ~50× the per-swipe delta (always-liked
+// genre ≈ +50, always-skipped ≈ -30). They look unbounded early; they are not.
+// Genre bias activates at swipeCount >= 5 AND likeCount >= 1.
+// Language bias activates at swipeCount >= 10 AND top lang > 2× second place.
+// Discover uses with_genres joined by "|" (OR). Thin pages (< ~8 results)
+// retry once without without_genres before touching with_genres.
 
 
 Swipe gesture meanings (locked — do not reinterpret)
 
 
-Right = liked → append to tasteProfile, increment swipePrefs
-Left = skip → no storage write at all
-Up = add to watchlist
+Right = liked → append to tasteProfile, applyTasteSignal("right")
+Left = skip → applyTasteSignal("left") only (soft negative; no tasteProfile write)
+Up = add to watchlist + applyTasteSignal("up")
 There is no swipe gesture for adding to a card. Card curation is a deliberate, separate action that happens on /card/[id], never inside the swipe deck. Do not add a fourth swipe direction for this. /taste is a reference/browse screen for tasteProfile, not itself a card-editing surface.
 
 
@@ -82,7 +101,7 @@ Use lz-string to compress a single card's {name, films} into the share URL's ?d=
 Cap each card's films at ~20-25 — keeps QR density scannable. Enforce this as a UI limit on /card/[id] when adding films, with a clear message (not a silent failure) when the cap is hit.
 Sharing uses navigator.share() first (covers WhatsApp/Instagram/etc. via the native share sheet on mobile), falling back to a visible link + QR + copy button when Web Share isn't supported (typically desktop). Don't build separate per-platform integrations.
 /card/[id] may call /api/tmdb/search for the inline "add a film not in your taste profile" flow — same server-side proxy rule as everywhere else applies.
-/movie/[id]'s "add to watchlist" is a simple binary toggle (on/off), distinct from the swipe deck's three-gesture model. It only ever writes to watchlist, never to tasteProfile or any card. Do not add a "reject"/skip action on this page — that concept belongs only in /explore.
+/movie/[id]'s page has like (→ tasteProfile + tasteModel), skip (→ tasteModel soft-negative), and a binary watchlist toggle. Like/skip train the same explore model as the swipe deck; watchlist remains a private staging list.
 Home page backdrops: fetch a rotating set from a TMDB endpoint suited to "iconic/popular" (e.g. /trending/movie/week or /movie/popular, via the existing /api/tmdb/trending proxy or a similar one), each backdrop links to /movie/[id] using that film's TMDB id. Refresh selection on each page load — no need to persist which backdrops were shown.
 
 
@@ -108,7 +127,9 @@ The "blend" feature (combining two people's profiles/watchlists)
 Mood tags, folders, or playlists on saved films
 Cross-device sync
 Native Android app (PWA installability manifest can wait too — not needed for MVP)
-Any actual ML/recommendation model — swipePrefs weighting is a simple counter, not a model, and should stay that way in Phase A
+Any actual neural/embedding recommendation model — tasteModel is a local
+online weighted scorer (decay-then-delta), not ML, and should stay that way
+until a deliberate Phase B redesign.
 
 
 
@@ -116,43 +137,46 @@ Progress
 
 
 ✅ Step 1 — Scaffold + TMDB proxy routes. Next.js + Tailwind + TypeScript. lib/tmdb.ts shared fetch helper (v3 key or v4 token, short revalidate cache). Three proxies: /api/tmdb/{trending,search,discover}. Verified via curl — real TMDB data, no client-side key leak.
-✅ Step 2 — /explore. Filter chips (genre multi-select OR, language single-select) + swipe deck (react-tinder-card, desktop buttons as fallback). Gestures locked and verified in-browser via DevTools: right → tasteProfile + swipePrefs, left → no write, up → watchlist. Chips-win-per-dimension bias logic confirmed working against real swipe data.
-✅ Step 3 — Cards (list, editor, share, shared view). /card lists all cards (name, film count, poster preview, edit/share/delete, "+ New card"). /card/[id] is the editor: rename, add from tasteProfile or inline TMDB search, remove, 25-film cap with a clear on-screen message (no silent failure). Share panel: navigator.share() first, fallback to link + QR + copy. Shared view (?d= on the same route) decodes and renders without ever touching TMDB, plus a "save this as mine" fork button.
+✅ Step 2 — /explore. Filter chips + swipe deck. Gestures: right → tasteProfile + tasteModel, left → tasteModel soft-negative, up → watchlist + mild tasteModel. Online tasteModel biases discover + ranks batches; tap top card → /movie/[id]; search icon → /search?from=explore.
+✅ Step 3 — Cards (list, editor, share, shared view). /card lists all cards. /card/[id] editor + share panel + shared ?d= view with fork.
+✅ Step 4 — Home collage, /movie/[id] (cast + like/skip/watchlist + summary), /search (typeahead + ♥/✕ + clickable results), /dev backdrop curation.
+✅ Step 5 — Full-bleed home redesign + site-wide light/dark theme tokens.
 ⬜ /taste — grid/browse view of tasteProfile (reference only, not yet built)
 ⬜ Card reorder on /card/[id] (in spec, not yet built)
-⬜ Home page redesign (/) — backdrop rotation from TMDB, Search / Explore / Share entry points, backdrops clickable to /movie/[id]
-⬜ /movie/[id] — film detail page + binary watchlist toggle
-⬜ Search wired to /movie/[id]
-⬜ Deploy to Vercel; real-phone test of swipe deck + QR scan flow
+⬜ Real-phone test of swipe deck + QR scan flow on Vercel deploy
 
 
-Actual project structure (as built through Step 3)
+Actual project structure
 
 app/
-  page.tsx                 landing page (placeholder — home redesign still pending)
-  explore/page.tsx         swipe deck + filter chips
-  card/page.tsx             list of the user's cards
+  page.tsx                 home: full-bleed backdrop collage + menu card + theme toggle
+  explore/page.tsx         swipe deck + filter chips + tasteModel wiring
+  search/page.tsx          typeahead search → ♥/✕ + /movie/[id]
+  movie/[id]/page.tsx      film detail (cast, like/skip/watchlist, summary)
+  card/page.tsx            list of the user's cards
   card/[id]/page.tsx       card editor, OR shared read-only view when ?d= is present
+  dev/page.tsx             backdrop curation tool
   api/tmdb/{trending,search,discover}/route.ts   server-side TMDB proxies
+  api/tmdb/movie/[id]/route.ts, .../images/route.ts
 components/                FilterChips, SwipeDeck, MovieCard, FilmTile,
-                           CardEditor, SharePanel, SharedCardView
+                           CardEditor, SharePanel, SharedCardView, ThemeToggle, ThemeSync
+data/
+  backdrops.json           curated homepage backdrops
 lib/
   tmdb.ts                  server-only TMDB fetch helper
-  storage.ts               localStorage layer (tasteProfile / watchlist / cards / swipePrefs)
+  storage.ts               localStorage layer (tasteProfile / watchlist / cards / tasteModel)
   genres.ts                static genre + language lists
-  discover.ts              builds the discover query (chips + weighted bias)
-  search.ts                client helper for inline TMDB search
+  discover.ts              builds the discover query (chips + tasteModel bias)
+  rank.ts                  scores discover candidates against tasteModel
+  search.ts                client helper for TMDB search
+  movie.ts                 client helper for /movie/[id] detail + credits
+  backdrops.ts             curated-backdrop read + /dev draft helpers
   share.ts                 encode/decode a card into the ?d= payload + build share URL
 
-New files expected for the upcoming home page / movie page / search work should follow this same convention (e.g. app/movie/[id]/page.tsx, lib/backdrops.ts or similar for the home page rotation logic) — check this structure before creating new top-level folders or duplicating existing helpers.
 
-
-Build order (remaining — steps 1-8 done, see Progress above)
+Build order (remaining)
 
 
 /taste: grid view of tasteProfile (browse/reference only)
 Card reorder on /card/[id] (optional polish, not blocking)
-Redesign / (home): backdrop rotation from TMDB, three entry actions (Search, Explore, Share/Taste Profile), backdrops clickable to /movie/[id]
-Build /movie/[id]: film details + binary watchlist toggle
-Wire Search to /movie/[id] (route/placement of search UI is Claude Code's call, confirm with user)
-Deploy to Vercel, test the swipe deck, movie pages, and QR scan flow on a real phone before adding anything further
+Real-phone test of swipe deck, movie pages, and QR scan flow on the Vercel deploy before adding anything further

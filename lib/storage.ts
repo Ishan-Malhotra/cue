@@ -17,10 +17,23 @@ export type WatchlistEntry = {
   poster_path: string | null;
 };
 
+// Legacy right-swipe counters. Kept for one-shot migration into tasteModel.
 export type SwipePrefs = {
   genres: Record<string, number>; // TMDB genre id -> right-swipe count
   langs: Record<string, number>; // language code -> right-swipe count
 };
+
+// Online taste model for /explore: signed genre/lang weights trained on
+// left/right/up. Decay-then-delta keeps the latest swipe fully applied.
+export type TasteModel = {
+  genres: Record<string, number>;
+  langs: Record<string, number>;
+  seen: number[]; // FIFO of liked/skipped/watchlisted ids (persist as array)
+  swipeCount: number;
+  likeCount: number; // right-swipes only — gates genre bias activation
+};
+
+export type SwipeSignal = "left" | "right" | "up";
 
 // A movie as we need it to record a swipe — the fields we read off a TMDB
 // discover result.
@@ -53,10 +66,21 @@ export type Card = {
 // Per-card film cap (QR density limit) — enforced per card, not globally.
 export const CARD_FILM_CAP = 25;
 
+export const TASTE_DECAY = 0.98;
+export const SEEN_CAP = 500;
+
+// Per-swipe deltas applied after decay (see applyTasteSignal).
+const DELTAS: Record<SwipeSignal, { genre: number; lang: number }> = {
+  right: { genre: 1.0, lang: 1.0 },
+  left: { genre: -0.6, lang: -0.4 },
+  up: { genre: 0.3, lang: 0.3 },
+};
+
 const KEYS = {
   taste: "tasteProfile",
   watchlist: "watchlist",
   prefs: "swipePrefs",
+  model: "tasteModel",
   cards: "cards",
 } as const;
 
@@ -139,12 +163,180 @@ export function isInWatchlist(id: number): boolean {
   return getWatchlist().some((m) => m.id === id);
 }
 
-// --- swipePrefs (weighted counters, bumped on right swipe) ------------------
+// --- tasteModel (online signed weights for /explore) ------------------------
 
+function emptyTasteModel(): TasteModel {
+  return {
+    genres: {},
+    langs: {},
+    seen: [],
+    swipeCount: 0,
+    likeCount: 0,
+  };
+}
+
+function topNKeys(counts: Record<string, number>, n: number): string[] {
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, n)
+    .map(([k]) => k);
+}
+
+// One-shot, one-directional: old top-2 genres / top-1 lang seed at +2.0 each.
+function migrateFromSwipePrefs(): TasteModel | null {
+  const prefs = read<SwipePrefs | null>(KEYS.prefs, null);
+  if (!prefs) return null;
+  if (
+    Object.keys(prefs.genres ?? {}).length === 0 &&
+    Object.keys(prefs.langs ?? {}).length === 0
+  ) {
+    return null;
+  }
+
+  const model = emptyTasteModel();
+  for (const id of topNKeys(prefs.genres ?? {}, 2)) {
+    model.genres[id] = 2.0;
+  }
+  const [lang] = topNKeys(prefs.langs ?? {}, 1);
+  if (lang) model.langs[lang] = 2.0;
+
+  const taste = getTasteProfile();
+  const watch = getWatchlist();
+  model.likeCount = taste.length;
+  model.swipeCount = taste.length;
+  model.seen = trimSeen([
+    ...taste.map((m) => m.id),
+    ...watch.map((m) => m.id),
+  ]);
+
+  write(KEYS.model, model);
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(KEYS.prefs);
+    } catch {
+      // ignore
+    }
+  }
+  return model;
+}
+
+function trimSeen(ids: number[]): number[] {
+  if (ids.length <= SEEN_CAP) return ids;
+  return ids.slice(ids.length - SEEN_CAP);
+}
+
+function pushSeen(seen: number[], id: number): number[] {
+  const next = seen.filter((x) => x !== id);
+  next.push(id);
+  return trimSeen(next);
+}
+
+// Decay existing weights, then apply delta — never discount the latest swipe.
+function decayThenAdd(
+  weights: Record<string, number>,
+  keys: string[],
+  delta: number,
+): void {
+  for (const key of Object.keys(weights)) {
+    weights[key] = weights[key] * TASTE_DECAY;
+  }
+  const unique = [...new Set(keys.filter(Boolean))];
+  for (const key of unique) {
+    weights[key] = (weights[key] ?? 0) + delta;
+  }
+}
+
+export function getTasteModel(): TasteModel {
+  const existing = read<TasteModel | null>(KEYS.model, null);
+  if (existing) {
+    return {
+      genres: existing.genres ?? {},
+      langs: existing.langs ?? {},
+      seen: existing.seen ?? [],
+      swipeCount: existing.swipeCount ?? 0,
+      likeCount: existing.likeCount ?? 0,
+    };
+  }
+  const migrated = migrateFromSwipePrefs();
+  return migrated ?? emptyTasteModel();
+}
+
+export function getSeenSet(model: TasteModel = getTasteModel()): Set<number> {
+  return new Set(model.seen);
+}
+
+export function applyTasteSignal(
+  movie: SwipedMovie,
+  signal: SwipeSignal,
+): TasteModel {
+  const model = getTasteModel();
+  const { genre, lang } = DELTAS[signal];
+
+  decayThenAdd(
+    model.genres,
+    movie.genre_ids.map(String),
+    genre,
+  );
+  if (movie.original_language) {
+    decayThenAdd(model.langs, [movie.original_language], lang);
+  } else {
+    // Still decay langs even when this film has no language signal.
+    for (const key of Object.keys(model.langs)) {
+      model.langs[key] = model.langs[key] * TASTE_DECAY;
+    }
+  }
+
+  model.swipeCount += 1;
+  if (signal === "right") model.likeCount += 1;
+  model.seen = pushSeen(model.seen, movie.id);
+
+  write(KEYS.model, model);
+  return model;
+}
+
+export function getTopPositiveGenres(
+  model: TasteModel = getTasteModel(),
+  n = 2,
+): string[] {
+  return Object.entries(model.genres)
+    .filter(([, w]) => w > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, n)
+    .map(([k]) => k);
+}
+
+export function getStrongNegativeGenres(
+  model: TasteModel = getTasteModel(),
+  threshold = -2,
+  n = 2,
+): string[] {
+  return Object.entries(model.genres)
+    .filter(([, w]) => w <= threshold)
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, n)
+    .map(([k]) => k);
+}
+
+// Language bias needs a clear margin: top weight > 2× second place.
+export function getDominantLanguage(
+  model: TasteModel = getTasteModel(),
+): string | undefined {
+  const ranked = Object.entries(model.langs)
+    .filter(([, w]) => w > 0)
+    .sort((a, b) => b[1] - a[1]);
+  if (ranked.length === 0) return undefined;
+  const [top, second] = ranked;
+  if (!second) return top[0];
+  if (top[1] > second[1] * 2) return top[0];
+  return undefined;
+}
+
+/** @deprecated Prefer getTasteModel / applyTasteSignal. Kept for any stragglers. */
 export function getSwipePrefs(): SwipePrefs {
   return read<SwipePrefs>(KEYS.prefs, { genres: {}, langs: {} });
 }
 
+/** @deprecated Prefer applyTasteSignal("right"). */
 export function bumpSwipePrefs(genreIds: number[], lang: string): SwipePrefs {
   const prefs = getSwipePrefs();
   for (const id of genreIds) {
@@ -158,20 +350,13 @@ export function bumpSwipePrefs(genreIds: number[], lang: string): SwipePrefs {
   return prefs;
 }
 
-// Top-weighted picks used to bias future /discover calls. Simple counter sort,
-// NOT a recommendation model (per CLAUDE.md constraint).
+/** @deprecated Prefer getTopPositiveGenres / getDominantLanguage. */
 export function getTopPrefs(prefs: SwipePrefs = getSwipePrefs()): {
   genreIds: string[];
   lang?: string;
 } {
-  const topN = (counts: Record<string, number>, n: number): string[] =>
-    Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, n)
-      .map(([k]) => k);
-
-  const genreIds = topN(prefs.genres, 2);
-  const [lang] = topN(prefs.langs, 1);
+  const genreIds = topNKeys(prefs.genres, 2);
+  const [lang] = topNKeys(prefs.langs, 1);
   return { genreIds, lang };
 }
 

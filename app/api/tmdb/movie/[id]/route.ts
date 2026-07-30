@@ -3,7 +3,7 @@ import { TmdbError, tmdbFetch } from "@/lib/tmdb";
 
 export const runtime = "nodejs";
 
-// GET /api/tmdb/movie/[id] — full movie detail (title, overview, genres, backdrop).
+// GET /api/tmdb/movie/[id] — detail + credits (cast) in one TMDB call.
 export async function GET(
   _req: Request,
   { params }: { params: { id: string } },
@@ -11,7 +11,7 @@ export async function GET(
   try {
     const data = await tmdbFetch(
       `/movie/${encodeURIComponent(params.id)}`,
-      {},
+      { append_to_response: "credits" },
       { revalidate: 3600 },
     );
     return NextResponse.json(data);

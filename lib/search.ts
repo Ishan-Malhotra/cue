@@ -1,5 +1,4 @@
-// Client helper for the inline "add a film not in your taste profile" flow on
-// /card/[id]. Goes through our /api/tmdb/search proxy — never TMDB directly.
+// Client helper for TMDB search via /api/tmdb/search — never call TMDB directly.
 
 import type { Film } from "@/lib/storage";
 
@@ -9,9 +8,16 @@ type TmdbSearchResult = {
   name?: string;
   release_date?: string;
   poster_path: string | null;
+  genre_ids?: number[];
+  original_language?: string;
 };
 
-export async function searchMovies(query: string): Promise<Film[]> {
+export type SearchMovie = Film & {
+  genre_ids: number[];
+  original_language: string;
+};
+
+export async function searchMovies(query: string): Promise<SearchMovie[]> {
   const q = query.trim();
   if (!q) return [];
 
@@ -27,5 +33,7 @@ export async function searchMovies(query: string): Promise<Film[]> {
     title: m.title || m.name || "Untitled",
     year: m.release_date ? m.release_date.slice(0, 4) : "",
     poster_path: m.poster_path,
+    genre_ids: m.genre_ids ?? [],
+    original_language: m.original_language ?? "",
   }));
 }

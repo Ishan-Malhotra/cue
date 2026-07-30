@@ -55,10 +55,30 @@ export async function tmdbFetch<T = unknown>(
     url.searchParams.set("api_key", key);
   }
 
-  const res = await fetch(url, {
-    headers,
-    next: { revalidate: options.revalidate ?? 3600 },
-  });
+  let res: Response | null = null;
+  let lastNetworkError: unknown = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      res = await fetch(url, {
+        headers,
+        next: { revalidate: options.revalidate ?? 3600 },
+      });
+      break;
+    } catch (err) {
+      lastNetworkError = err;
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
+  }
+
+  if (!res) {
+    const detail =
+      lastNetworkError instanceof Error
+        ? lastNetworkError.message
+        : "fetch failed";
+    throw new TmdbError(`TMDB unreachable (${detail})`, 502);
+  }
 
   const data = await res.json().catch(() => null);
 

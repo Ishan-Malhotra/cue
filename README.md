@@ -36,18 +36,23 @@ database, zero cost to build or use.
 - Shared `tmdbFetch` helper ([lib/tmdb.ts](lib/tmdb.ts)) supporting a TMDB v3 API key or v4 read
   token, with a short revalidate cache.
 
-### ✅ Step 2 — `/explore` (filter chips + swipe deck)
+### ✅ Step 2 — `/explore` (filter chips + swipe deck + taste model)
 - Genre (multi-select, OR) and language (single-select) filter chips.
 - Swipeable film deck (`react-tinder-card`) pulling cards from `/api/tmdb/discover`, with
   desktop like / watchlist / skip buttons as a fallback.
+- **Tap the top card** to open `/movie/[id]` (swipes still work; only a short stationary tap navigates).
+- Header **search** icon → `/search?from=explore`.
 - **Locked swipe gestures** wired to `localStorage`:
-  - **Right** = like → append to `tasteProfile` + increment `swipePrefs`
-  - **Left** = skip → no storage write
-  - **Up** = add to `watchlist`
+  - **Right** = like → append to `tasteProfile` + train `tasteModel`
+  - **Left** = skip → soft-negative train on `tasteModel` (no `tasteProfile` write)
+  - **Up** = add to `watchlist` + mild positive train
   - _(No fourth direction; card curation is a separate action on `/card/[id]`.)_
-- **swipePrefs weighting** — a simple right-swipe counter (not a recommendation model). Once
-  `tasteProfile` has 10+ entries, the top-weighted genres/language bias the next `/discover`
-  call. Manually selected chips win per dimension; unselected dimensions fall back to the bias.
+- **`tasteModel`** — signed genre/lang weights with decay-then-delta updates
+  (`w = w * 0.98 + delta`). Genre bias after 5 swipes + ≥1 like; language bias
+  later (10 swipes + clear margin). New batches are scored/reordered; only the
+  not-yet-rendered deck tail reshuffles so staged cards stay stable.
+- Manually selected chips still win per dimension; unselected dimensions fall
+  back to the model. Legacy `swipePrefs` migrates once into `tasteModel`.
 
 ### ✅ Step 3 — Cards: list, editor, share & shared view
 The card model is **multiple named, editable cards** (not a single card).
@@ -69,13 +74,17 @@ The card model is **multiple named, editable cards** (not a single card).
 ### ✅ Step 4 — Home, `/movie/[id]`, `/search` & curated-backdrop `/dev` tool
 - **`/`** — `cue` branding + `search`/`explore`/`share` buttons, plus a rotating set of curated
   movie backdrops (fresh random selection each load), each clickable through to `/movie/[id]`.
-- **`/movie/[id]`** — film detail (backdrop, title, year, genres, overview) with a single
-  **binary** add-to-watchlist toggle (writes only to `watchlist`; no reject/skip).
-- **`/search`** — search box hitting `/api/tmdb/search`; results link to `/movie/[id]`.
+- **`/movie/[id]`** — full-bleed detail page: backdrop + poster, title, year/runtime/director,
+  genres, scrollable cast, **Like / Skip / Watchlist**, then summary. Like/skip train
+  `tasteModel` the same way as explore; watchlist stays a private staging list.
+  Detail fetch uses `append_to_response=credits` via `/api/tmdb/movie/[id]`.
+- **`/search`** — typeahead suggestions while typing; results are clickable posters →
+  `/movie/[id]`, with ♥ / ✕ actions to train taste without leaving search. Reachable from
+  home or explore (`?from=explore`).
 - **`/dev`** — a developer curation tool: search a film, browse its actual backdrop frames, pick
   ones for the homepage, and Copy/Download the JSON to commit into `data/backdrops.json`
   (the committed source of truth for the homepage collage — no server DB).
-- New proxy routes `GET /api/tmdb/movie/[id]` (detail) and `/api/tmdb/movie/[id]/images` (frames).
+- Proxy routes `GET /api/tmdb/movie/[id]` (detail + credits) and `/api/tmdb/movie/[id]/images`.
 
 ### ✅ Step 5 — Home redesign + site-wide light/dark theme
 - **`/`** rebuilt as a **full-bleed masonry collage** of the curated backdrops (varied tiles,
@@ -87,20 +96,24 @@ The card model is **multiple named, editable cards** (not a single card).
   [app/globals.css](app/globals.css) and mapped in `tailwind.config.ts`) drive **every screen**
   so the whole app is correct in both themes.
 
+### ✅ Step 6 — Explore taste model + search/movie polish
+- Local online `tasteModel` (left trains too), discover bias + client re-rank, soft-reset
+  refreshes, resilient TMDB retries.
+- Explore → search entry, movie-page like/skip, tap-card-to-detail, search typeahead.
+
 ### ⬜ Upcoming
 - `/taste` — grid/browse view of `tasteProfile` (reference only; does not edit cards)
 - Optional card **reorder** on `/card/[id]` (listed in the spec; not yet built)
-- Full light/dark polish is applied; deploy to Vercel and test the swipe + QR scan flow on a
-  real phone
+- Real-phone test of swipe + QR scan flow after Vercel deploy
 
 ## Data model (`localStorage`, Phase A)
 
-| Key            | Written by             | Purpose                                                       |
-| -------------- | ---------------------- | ------------------------------------------------------------- |
-| `tasteProfile` | right swipe            | Full history of liked films; feeds `swipePrefs`               |
-| `watchlist`    | up swipe               | Private "want to watch" list                                  |
-| `cards`        | `/card`, `/card/[id]`  | Multiple named, editable cards (`{id,name,films[],…}`); each card's `films` capped at 25. Only a card is ever shared/QR'd, one at a time. |
-| `swipePrefs`   | right swipe            | Weighted genre/language counters biasing discover             |
+| Key            | Written by                          | Purpose                                                       |
+| -------------- | ----------------------------------- | ------------------------------------------------------------- |
+| `tasteProfile` | right swipe / search♥ / movie Like  | Full history of liked films                                   |
+| `watchlist`    | up swipe / movie Watchlist          | Private "want to watch" list                                  |
+| `cards`        | `/card`, `/card/[id]`               | Multiple named, editable cards (`{id,name,films[],…}`); each card's `films` capped at 25. Only a card is ever shared/QR'd, one at a time. |
+| `tasteModel`   | left/right/up (+ search/movie)      | Signed genre/lang weights biasing + ranking `/explore`        |
 
 See [lib/storage.ts](lib/storage.ts) for the exact shapes.
 
@@ -134,8 +147,8 @@ app/
   globals.css              Tailwind + theme tokens (light/dark CSS variables)
   page.tsx                 home: full-bleed backdrop collage + menu card + theme toggle
   explore/page.tsx         swipe deck + filter chips
-  search/page.tsx          search box → results linking to /movie/[id]
-  movie/[id]/page.tsx      film detail + binary watchlist toggle
+  search/page.tsx          typeahead search → ♥/✕ + /movie/[id]
+  movie/[id]/page.tsx      film detail (cast, like/skip/watchlist, summary)
   card/page.tsx            list of the user's cards
   card/[id]/page.tsx       card editor, or shared read-only view when ?d= is present
   dev/page.tsx             backdrop curation tool (exports data/backdrops.json)
@@ -147,9 +160,10 @@ data/
   backdrops.json           committed curated homepage backdrops (source of truth)
 lib/
   tmdb.ts                  server-only TMDB fetch helper
-  storage.ts               localStorage layer (tasteProfile / watchlist / cards / swipePrefs)
+  storage.ts               localStorage layer (tasteProfile / watchlist / cards / tasteModel)
   genres.ts                static genre + language lists
-  discover.ts              builds the discover query (chips + weighted bias)
+  discover.ts              builds the discover query (chips + tasteModel bias)
+  rank.ts                  scores discover candidates against tasteModel
   search.ts                client helper for inline TMDB search
   movie.ts                 client helper for /movie/[id] detail
   backdrops.ts             curated-backdrop read + /dev draft helpers

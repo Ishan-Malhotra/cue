@@ -7,9 +7,11 @@ export const runtime = "nodejs";
 // proxy can't be used to hit arbitrary TMDB params.
 const ALLOWED_PARAMS = [
   "with_genres",
+  "without_genres",
   "with_original_language",
   "sort_by",
   "page",
+  "vote_count.gte",
 ] as const;
 
 // GET /api/tmdb/discover?with_genres=28&with_original_language=en&sort_by=popularity.desc&page=1

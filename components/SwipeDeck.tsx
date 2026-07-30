@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import TinderCard from "react-tinder-card";
 import MovieCard from "./MovieCard";
 import type { DiscoverMovie } from "@/lib/discover";
@@ -14,7 +15,7 @@ type CardApi = {
 };
 
 // How many cards to actually mount for the stacked look (top + a couple behind).
-const RENDER_WINDOW = 3;
+export const RENDER_WINDOW = 3;
 
 export default function SwipeDeck({
   deck,
@@ -26,6 +27,7 @@ export default function SwipeDeck({
   onSwipe: (movie: DiscoverMovie, dir: SwipeDir) => void;
   onCardLeftScreen: (movie: DiscoverMovie) => void;
 }) {
+  const router = useRouter();
   const refs = useRef<Map<number, CardApi | null>>(new Map());
 
   const top = deck[0];
@@ -57,12 +59,18 @@ export default function SwipeDeck({
               onCardLeftScreen(movie);
             }}
           >
-            <MovieCard movie={movie} />
+            <MovieCard
+              movie={movie}
+              onOpen={
+                top && movie.id === top.id
+                  ? () => router.push(`/movie/${movie.id}`)
+                  : undefined
+              }
+            />
           </TinderCard>
         ))}
       </div>
 
-      {/* Button fallback for desktop / non-touch. Mirrors the swipe gestures. */}
       <div className="flex items-center gap-4">
         <button
           type="button"
@@ -94,7 +102,7 @@ export default function SwipeDeck({
       </div>
 
       <p className="text-xs text-muted">
-        Swipe right to like · up for watchlist · left to skip
+        Tap for details · swipe right to like · up for watchlist · left to skip
       </p>
     </div>
   );
