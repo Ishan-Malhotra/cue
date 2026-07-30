@@ -12,6 +12,8 @@ const ALLOWED_PARAMS = [
   "sort_by",
   "page",
   "vote_count.gte",
+  "primary_release_date.lte",
+  "primary_release_date.gte",
 ] as const;
 
 // GET /api/tmdb/discover?with_genres=28&with_original_language=en&sort_by=popularity.desc&page=1

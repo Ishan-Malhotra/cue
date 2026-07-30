@@ -65,6 +65,14 @@ export function isLangBiasActive(model: TasteModel = getTasteModel()): boolean {
   return model.swipeCount >= LANG_BIAS_SWIPES;
 }
 
+/** Local calendar date as YYYY-MM-DD — used to exclude unreleased films. */
+export function todayISODate(now = new Date()): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function buildDiscoverQuery(
   selected: Selection,
   model: TasteModel = getTasteModel(),
@@ -74,6 +82,9 @@ export function buildDiscoverQuery(
     options.sortBy ??
     SORT_ROTATION[model.swipeCount % SORT_ROTATION.length];
   const params = new URLSearchParams({ sort_by: sortBy });
+
+  // Never surface unreleased / upcoming titles in the explore deck.
+  params.set("primary_release_date.lte", todayISODate());
 
   // vote_average.desc without a floor returns 1-vote junk and flaky pages.
   if (sortBy === "vote_average.desc") {
@@ -121,16 +132,24 @@ export function buildDiscoverQuery(
 }
 
 function mapResults(results: TmdbDiscoverResult[]): DiscoverMovie[] {
-  return results.map((m) => ({
-    id: m.id,
-    title: m.title || m.name || "Untitled",
-    year: m.release_date ? m.release_date.slice(0, 4) : "",
-    poster_path: m.poster_path,
-    genre_ids: m.genre_ids ?? [],
-    original_language: m.original_language ?? "",
-    overview: m.overview ?? "",
-    vote_average: m.vote_average ?? 0,
-  }));
+  const today = todayISODate();
+  return results
+    .filter((m) => {
+      // Require a known release date on or before today — drop upcoming /
+      // undated titles that still slip past the discover filter.
+      const date = m.release_date?.slice(0, 10);
+      return !!date && date <= today;
+    })
+    .map((m) => ({
+      id: m.id,
+      title: m.title || m.name || "Untitled",
+      year: m.release_date ? m.release_date.slice(0, 4) : "",
+      poster_path: m.poster_path,
+      genre_ids: m.genre_ids ?? [],
+      original_language: m.original_language ?? "",
+      overview: m.overview ?? "",
+      vote_average: m.vote_average ?? 0,
+    }));
 }
 
 async function fetchDiscoverPage(
